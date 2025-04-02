@@ -8,19 +8,18 @@ namespace LivinParis.Tests
         public void Test_Creation_Cuisinier()
         {
             // Arrange
-            string nom = "Petit";
-            string prenom = "Pierre";
-            string adresse = "789 rue de Marseille";
-            string telephone = "0123456789";
-            string email = "pierre@cuisine.com";
+            string nom = "Martin";
+            string prenom = "Sophie";
+            string telephone = "9876543210";
+            string email = "sophie@cuisine.com";
 
             // Act
-            var cuisinier = new Cuisinier(nom, prenom, adresse, telephone, email);
+            var cuisinier = new Cuisinier(nom, prenom, TestUtils.StationTest, telephone, email);
 
             // Assert
             if (cuisinier.Nom != nom) throw new Exception("Le nom n'est pas correct");
             if (cuisinier.Prenom != prenom) throw new Exception("Le prénom n'est pas correct");
-            if (cuisinier.Adresse != adresse) throw new Exception("L'adresse n'est pas correcte");
+            if (cuisinier.Station != TestUtils.StationTest) throw new Exception("La station n'est pas correcte");
             if (cuisinier.Telephone != telephone) throw new Exception("Le téléphone n'est pas correct");
             if (cuisinier.Email != email) throw new Exception("L'email n'est pas correct");
         }
@@ -28,14 +27,13 @@ namespace LivinParis.Tests
         public void Test_ToString_Cuisinier()
         {
             // Arrange
-            var cuisinier = new Cuisinier("Petit", "Pierre", "789 rue de Marseille", "0123456789", "pierre@cuisine.com");
+            var cuisinier = new Cuisinier("Martin", "Sophie", TestUtils.StationTest, "9876543210", "sophie@cuisine.com");
 
             // Act
-            string resultat = cuisinier.ToString();
+            var resultat = cuisinier.ToString();
 
             // Assert
-            string attendu = "Cuisinier : Pierre Petit";
-            if (resultat != attendu) throw new Exception($"La méthode ToString ne retourne pas le bon format. Attendu : {attendu}, Obtenu : {resultat}");
+            if (resultat != "Cuisinier : Sophie Martin") throw new Exception("La représentation textuelle n'est pas correcte");
         }
     }
 } 

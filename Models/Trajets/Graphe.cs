@@ -40,6 +40,11 @@ namespace LivinParis.Models.Trajets
             }
         }
 
+        public void AjouterSommet(T valeur)
+        {
+            AjouterNoeud(valeur);
+        }
+
         public void AjouterArete(T depart, T arrivee, double distance)
         {
             if (!_noeuds.ContainsKey(depart) || !_noeuds.ContainsKey(arrivee))
@@ -215,6 +220,36 @@ namespace LivinParis.Models.Trajets
                 distance += noeud1.Voisins[noeud2];
             }
             return distance;
+        }
+
+        public List<T> TrouverCheminLePlusCourt(T depart, T arrivee)
+        {
+            return Dijkstra(depart, arrivee);
+        }
+
+        public List<(T Depart, T Arrivee, double Distance)> ObtenirAretes()
+        {
+            var aretes = new List<(T Depart, T Arrivee, double Distance)>();
+            var noeudsTraites = new HashSet<T>();
+
+            foreach (var noeud in _noeuds.Values)
+            {
+                foreach (var voisin in noeud.Voisins)
+                {
+                    var depart = noeud.Valeur;
+                    var arrivee = voisin.Key.Valeur;
+                    var distance = voisin.Value;
+
+                    // Pour éviter les doublons dans un graphe non orienté
+                    if (!noeudsTraites.Contains(arrivee))
+                    {
+                        aretes.Add((depart, arrivee, distance));
+                    }
+                }
+                noeudsTraites.Add(noeud.Valeur);
+            }
+
+            return aretes;
         }
     }
 } 

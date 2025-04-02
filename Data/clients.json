@@ -1,0 +1,128 @@
+[
+  {
+    "Nom": "Vasseur ",
+    "Prenom": "Jean",
+    "Station": {
+      "Id": 2248,
+      "Nom": "Cluny-La Sorbonne",
+      "Adresse": "Rue Saint Jacques - 75105",
+      "Latitude": 48.8507957557043,
+      "Longitude": 2.34503088836523,
+      "Precedente": null,
+      "Distance": 0,
+      "Connexions": []
+    },
+    "Telephone": "0688779922",
+    "Email": "jeanvasseur@gmail.com",
+    "EstEntreprise": false,
+    "NomEntreprise": null,
+    "ReferentEntreprise": null,
+    "MontantAchats": 0,
+    "Identifiant": "AB42A9F9"
+  },
+  {
+    "Nom": "Verdes",
+    "Prenom": "Adrian",
+    "Station": {
+      "Id": 3064,
+      "Nom": "Saint-Lazare",
+      "Adresse": "Rue de l\u0027 Arcade - 75108",
+      "Latitude": 48.8760678143526,
+      "Longitude": 2.32418810077101,
+      "Precedente": null,
+      "Distance": 0,
+      "Connexions": []
+    },
+    "Telephone": "0899776622",
+    "Email": "linazaag@gmail.com",
+    "EstEntreprise": false,
+    "NomEntreprise": null,
+    "ReferentEntreprise": null,
+    "MontantAchats": 0,
+    "Identifiant": "307D1C90"
+  },
+  {
+    "Nom": "Zaag",
+    "Prenom": "Lina",
+    "Station": {
+      "Id": 2008,
+      "Nom": "Al\u00E9sia",
+      "Adresse": "Place Victor et H\u00E9l\u00E8ne Basch - 75114",
+      "Latitude": 48.8280660196865,
+      "Longitude": 2.32682742005084,
+      "Precedente": null,
+      "Distance": 0,
+      "Connexions": []
+    },
+    "Telephone": "0677998844",
+    "Email": "linazaag@mail.com",
+    "EstEntreprise": false,
+    "NomEntreprise": null,
+    "ReferentEntreprise": null,
+    "MontantAchats": 0,
+    "Identifiant": "5834E913"
+  },
+  {
+    "Nom": "Tuncel",
+    "Prenom": "Nicolas",
+    "Station": {
+      "Id": 3008,
+      "Nom": "Rome",
+      "Adresse": "60 boulevard des Batignolles - 75117",
+      "Latitude": 48.882070833937,
+      "Longitude": 2.32039833930999,
+      "Precedente": null,
+      "Distance": 0,
+      "Connexions": []
+    },
+    "Telephone": "O699884466",
+    "Email": "nicolastuncel@gmail.com",
+    "EstEntreprise": false,
+    "NomEntreprise": null,
+    "ReferentEntreprise": null,
+    "MontantAchats": 0,
+    "Identifiant": "DB6A719D"
+  },
+  {
+    "Nom": "Zucca",
+    "Prenom": "Lisandru",
+    "Station": {
+      "Id": 2248,
+      "Nom": "Cluny-La Sorbonne",
+      "Adresse": "Rue Saint Jacques - 75105",
+      "Latitude": 48.8507957557043,
+      "Longitude": 2.34503088836523,
+      "Precedente": null,
+      "Distance": 0,
+      "Connexions": []
+    },
+    "Telephone": "0699223344",
+    "Email": "lisandruzuca@gmail.com",
+    "EstEntreprise": false,
+    "NomEntreprise": null,
+    "ReferentEntreprise": null,
+    "MontantAchats": 0,
+    "Identifiant": "B390A454"
+  },
+  {
+    "Nom": "Derouen",
+    "Prenom": "Alban",
+    "Station": {
+      "Id": 2224,
+      "Nom": "Ch\u00E2telet",
+      "Adresse": "Th\u00E9\u00E2tre du Ch\u00E2telet - 75101",
+      "Latitude": 48.8572036455044,
+      "Longitude": 2.34722471105584,
+      "Precedente": null,
+      "Distance": 0,
+      "Connexions": []
+    },
+    "Telephone": "0877998844",
+    "Email": "alban@gmail.com",
+    "EstEntreprise": false,
+    "NomEntreprise": null,
+    "ReferentEntreprise": null,
+    "MontantAchats": 0,
+    "Identifiant": "62FACBFA"
+  }
+]

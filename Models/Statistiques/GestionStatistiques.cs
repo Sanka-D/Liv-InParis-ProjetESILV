@@ -7,8 +7,26 @@ using LivinParis.Models.Cuisinier;
 
 namespace LivinParis.Models.Statistiques
 {
-    public class GestionStatistiques
+    public static class GestionStatistiques
     {
+        public class StatistiquesGlobales
+        {
+            public int NombreTotalCommandes { get; set; }
+            public decimal MontantTotalCommandes { get; set; }
+        }
+
+        public class StatistiquesClient
+        {
+            public int NombreCommandes { get; set; }
+            public decimal MontantTotal { get; set; }
+        }
+
+        public class StatistiquesCuisinier
+        {
+            public int NombreCommandes { get; set; }
+            public decimal MontantTotal { get; set; }
+        }
+
         // Statistiques des livraisons par cuisinier
         public static Dictionary<string, int> ObtenirLivraisonsParCuisinier()
         {
@@ -35,61 +53,95 @@ namespace LivinParis.Models.Statistiques
         public static decimal CalculerMoyennePrixCommandes()
         {
             var commandes = GestionCommandes.ObtenirCommandes();
-            if (!commandes.Any()) return 0;
-
-            decimal sommeCommandes = commandes.Sum(c => c.MontantTotal);
-            return sommeCommandes / commandes.Count;
+            if (commandes.Count == 0) return 0;
+            return commandes.Average(c => c.MontantTotal);
         }
 
         // Statistiques des moyennes des comptes clients
         public static decimal CalculerMoyenneComptesClients()
         {
-            var clients = GestionClients.ObtenirClientsParOrdreAlphabetique();
-            if (!clients.Any()) return 0;
-            return clients.Average(c => c.MontantAchats);
+            var commandes = GestionCommandes.ObtenirCommandes();
+            if (commandes.Count == 0) return 0;
+
+            var montantsParClient = commandes
+                .GroupBy(c => c.IdentifiantClient)
+                .Select(g => g.Sum(c => c.MontantTotal))
+                .ToList();
+
+            return montantsParClient.Average();
         }
 
         // Statistiques des commandes par nationalité des plats
         public static Dictionary<string, int> ObtenirCommandesParNationalitePlats()
         {
-            var commandesParNationalite = new Dictionary<string, int>();
-            
-            foreach (var commande in GestionCommandes.ObtenirCommandes())
+            var commandes = GestionCommandes.ObtenirCommandes();
+            var platsParNationalite = new Dictionary<string, int>();
+
+            foreach (var commande in commandes)
             {
                 foreach (var ligne in commande.LignesCommande)
                 {
                     var nationalite = DeterminerNationalitePlat(ligne.NomPlat);
-                    if (!commandesParNationalite.ContainsKey(nationalite))
-                    {
-                        commandesParNationalite[nationalite] = 0;
-                    }
-                    commandesParNationalite[nationalite] += ligne.Quantite;
+                    if (!platsParNationalite.ContainsKey(nationalite))
+                        platsParNationalite[nationalite] = 0;
+                    platsParNationalite[nationalite]++;
                 }
             }
 
-            return commandesParNationalite;
+            return platsParNationalite;
         }
 
         // Méthode utilitaire pour déterminer la nationalité d'un plat
         private static string DeterminerNationalitePlat(string nomPlat)
         {
-            // Liste non exhaustive, à compléter selon les besoins
-            if (nomPlat.ToLower().Contains("coq au vin") || 
-                nomPlat.ToLower().Contains("ratatouille") ||
-                nomPlat.ToLower().Contains("bouillabaisse"))
+            var platsFrancais = new[] { "Coq au vin", "Ratatouille", "Quiche", "Soupe à l'oignon" };
+            var platsItaliens = new[] { "Pizza", "Pasta", "Risotto", "Lasagne" };
+            var platsJaponais = new[] { "Sushi", "Ramen", "Tempura", "Maki" };
+
+            if (platsFrancais.Any(p => nomPlat.Contains(p, StringComparison.OrdinalIgnoreCase)))
                 return "Française";
-            
-            if (nomPlat.ToLower().Contains("pizza") || 
-                nomPlat.ToLower().Contains("pasta") ||
-                nomPlat.ToLower().Contains("risotto"))
+            if (platsItaliens.Any(p => nomPlat.Contains(p, StringComparison.OrdinalIgnoreCase)))
                 return "Italienne";
-            
-            if (nomPlat.ToLower().Contains("sushi") || 
-                nomPlat.ToLower().Contains("ramen") ||
-                nomPlat.ToLower().Contains("tempura"))
+            if (platsJaponais.Any(p => nomPlat.Contains(p, StringComparison.OrdinalIgnoreCase)))
                 return "Japonaise";
 
             return "Autre";
+        }
+
+        public static StatistiquesGlobales ObtenirStatistiquesGlobales()
+        {
+            var commandes = GestionCommandes.ObtenirCommandes();
+            return new StatistiquesGlobales
+            {
+                NombreTotalCommandes = commandes.Count,
+                MontantTotalCommandes = commandes.Sum(c => c.MontantTotal)
+            };
+        }
+
+        public static StatistiquesClient ObtenirStatistiquesParClient(string identifiantClient)
+        {
+            var commandes = GestionCommandes.ObtenirCommandes()
+                .Where(c => c.IdentifiantClient == identifiantClient)
+                .ToList();
+
+            return new StatistiquesClient
+            {
+                NombreCommandes = commandes.Count,
+                MontantTotal = commandes.Sum(c => c.MontantTotal)
+            };
+        }
+
+        public static StatistiquesCuisinier ObtenirStatistiquesParCuisinier(string identifiantCuisinier)
+        {
+            var commandes = GestionCommandes.ObtenirCommandes()
+                .Where(c => c.IdentifiantCuisinier == identifiantCuisinier)
+                .ToList();
+
+            return new StatistiquesCuisinier
+            {
+                NombreCommandes = commandes.Count,
+                MontantTotal = commandes.Sum(c => c.MontantTotal)
+            };
         }
 
         // Méthode d'affichage des statistiques
@@ -127,6 +179,36 @@ namespace LivinParis.Models.Statistiques
             {
                 Console.WriteLine($"- Cuisine {kvp.Key} : {kvp.Value} plat(s)");
             }
+        }
+
+        public static void AfficherStatistiques()
+        {
+            var commandes = GestionCommandes.ObtenirCommandes();
+            Console.WriteLine("\n=== STATISTIQUES GLOBALES ===");
+            Console.WriteLine($"Nombre total de commandes : {commandes.Count}");
+            Console.WriteLine($"Montant total des commandes : {commandes.Sum(c => c.MontantTotal):C2}");
+        }
+
+        public static void AfficherStatistiquesParClient(string identifiantClient)
+        {
+            var commandes = GestionCommandes.ObtenirCommandes()
+                .Where(c => c.IdentifiantClient == identifiantClient)
+                .ToList();
+
+            Console.WriteLine("\n=== STATISTIQUES PAR CLIENT ===");
+            Console.WriteLine($"Nombre de commandes : {commandes.Count}");
+            Console.WriteLine($"Montant total : {commandes.Sum(c => c.MontantTotal):C2}");
+        }
+
+        public static void AfficherStatistiquesParCuisinier(string identifiantCuisinier)
+        {
+            var commandes = GestionCommandes.ObtenirCommandes()
+                .Where(c => c.IdentifiantCuisinier == identifiantCuisinier)
+                .ToList();
+
+            Console.WriteLine("\n=== STATISTIQUES PAR CUISINIER ===");
+            Console.WriteLine($"Nombre de commandes : {commandes.Count}");
+            Console.WriteLine($"Montant total : {commandes.Sum(c => c.MontantTotal):C2}");
         }
     }
 } 

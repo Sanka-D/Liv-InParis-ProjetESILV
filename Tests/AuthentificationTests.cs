@@ -8,7 +8,7 @@ namespace LivinParis.Tests
         public void Test_Enregistrement_Et_Authentification()
         {
             // Arrange
-            var client = new Client("Dupont", "Jean", "123 rue de Paris", "0123456789", "jean@email.com");
+            var client = new Client("Dupont", "Jean", TestUtils.StationTest, "0123456789", "jean@email.com");
             string motDePasse = "motdepasse123";
 
             // Act
@@ -23,7 +23,7 @@ namespace LivinParis.Tests
         public void Test_Authentification_Echec()
         {
             // Arrange
-            var client = new Client("Dupont", "Jean", "123 rue de Paris", "0123456789", "jean@email.com");
+            var client = new Client("Dupont", "Jean", TestUtils.StationTest, "0123456789", "jean@email.com");
             string motDePasse = "motdepasse123";
             string mauvaisMotDePasse = "mauvaismdp";
 

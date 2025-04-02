@@ -7,22 +7,46 @@ namespace LivinParis.Models.Trajets
 {
     public class ReseauMetro
     {
+        private static ReseauMetro _instance;
         private Dictionary<int, Station> _stations;
         private Graphe<Station> _graphe;
+
+        public static ReseauMetro Instance
+        {
+            get
+            {
+                if (_instance == null)
+                {
+                    _instance = new ReseauMetro();
+                }
+                return _instance;
+            }
+        }
 
         public IReadOnlyDictionary<int, Station> Stations => _stations;
         public Graphe<Station> Graphe => _graphe;
 
-        public ReseauMetro()
+        internal ReseauMetro()
         {
-            _graphe = new Graphe<Station>();
             _stations = new Dictionary<int, Station>();
+            _graphe = new Graphe<Station>();
         }
 
         public void AjouterStation(Station station)
         {
-            _stations[station.Id] = station;
-            _graphe.AjouterNoeud(station);
+            if (!_stations.ContainsKey(station.Id))
+            {
+                _stations.Add(station.Id, station);
+                _graphe.AjouterSommet(station);
+            }
+        }
+
+        public void AjouterLigne(Ligne ligne)
+        {
+            if (!_stations.ContainsKey(ligne.StationDepart.Id) || !_stations.ContainsKey(ligne.StationArrivee.Id))
+                throw new Exception("Les stations de la ligne doivent exister dans le réseau");
+
+            _graphe.AjouterArete(ligne.StationDepart, ligne.StationArrivee, ligne.Duree);
         }
 
         public void AjouterConnexion(int station1Id, int station2Id)
@@ -93,6 +117,48 @@ namespace LivinParis.Models.Trajets
             {
                 Console.WriteLine($"{i + 1}. {chemin[i]}");
             }
+        }
+
+        public Station RechercherStationParNom(string nomStation)
+        {
+            return Stations.Values.FirstOrDefault(s => 
+                s.Nom.ToLower().Contains(nomStation.ToLower()));
+        }
+
+        public List<Station> RechercherStationsParNom(string nomStation)
+        {
+            return Stations.Values
+                .Where(s => s.Nom.ToLower().Contains(nomStation.ToLower()))
+                .ToList();
+        }
+
+        public List<Station> ObtenirTrajet(int stationDepartId, int stationArriveeId)
+        {
+            if (!_stations.ContainsKey(stationDepartId) || !_stations.ContainsKey(stationArriveeId))
+                throw new Exception("Les stations spécifiées n'existent pas dans le réseau");
+
+            var stationDepart = _stations[stationDepartId];
+            var stationArrivee = _stations[stationArriveeId];
+
+            var chemin = _graphe.TrouverCheminLePlusCourt(stationDepart, stationArrivee);
+            return chemin;
+        }
+
+        public List<Station> ObtenirStations()
+        {
+            return _stations.Values.ToList();
+        }
+
+        public List<Ligne> ObtenirLignes()
+        {
+            var aretes = _graphe.ObtenirAretes();
+            return aretes.Select(a => new Ligne(
+                a.Depart.Id, 
+                $"Ligne {a.Depart.Id}-{a.Arrivee.Id}", 
+                a.Depart, 
+                a.Arrivee, 
+                a.Distance
+            )).ToList();
         }
     }
 } 

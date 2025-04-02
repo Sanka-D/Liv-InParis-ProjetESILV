@@ -32,7 +32,29 @@ namespace LivinParis.Models.Trajets
                 reseau.AjouterStation(station);
             }
 
-            // Charger les connexions à partir des trajets
+            // Charger les connexions
+            var connexionsElement = doc.Root.Element("connexions");
+            if (connexionsElement != null)
+            {
+                foreach (var connexionElement in connexionsElement.Elements("connexion"))
+                {
+                    var station1Id = int.Parse(connexionElement.Element("station1").Value);
+                    var station2Id = int.Parse(connexionElement.Element("station2").Value);
+                    try
+                    {
+                        reseau.AjouterConnexion(station1Id, station2Id);
+                        // Ajouter aussi la connexion dans l'autre sens car le métro est bidirectionnel
+                        reseau.AjouterConnexion(station2Id, station1Id);
+                    }
+                    catch (ArgumentException)
+                    {
+                        // Ignorer les connexions invalides
+                        continue;
+                    }
+                }
+            }
+
+            // Charger aussi les connexions à partir des trajets pour être sûr d'avoir toutes les connexions
             var servicesElement = doc.Root.Element("services");
             if (servicesElement != null)
             {
@@ -50,6 +72,8 @@ namespace LivinParis.Models.Trajets
                             try
                             {
                                 reseau.AjouterConnexion(stations[i], stations[i + 1]);
+                                // Ajouter aussi la connexion dans l'autre sens
+                                reseau.AjouterConnexion(stations[i + 1], stations[i]);
                             }
                             catch (ArgumentException)
                             {

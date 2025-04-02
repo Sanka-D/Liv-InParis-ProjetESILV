@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace LivinParis.Models.Trajets
 {
@@ -9,6 +10,9 @@ namespace LivinParis.Models.Trajets
         public string Adresse { get; set; }
         public double Latitude { get; set; }
         public double Longitude { get; set; }
+        public Station Precedente { get; set; }
+        public double Distance { get; set; }
+        public List<Connexion> Connexions { get; set; }
 
         public Station(int id, string nom, string adresse, double latitude, double longitude)
         {
@@ -17,6 +21,7 @@ namespace LivinParis.Models.Trajets
             Adresse = adresse;
             Latitude = latitude;
             Longitude = longitude;
+            Connexions = new List<Connexion>();
         }
 
         public double CalculerDistance(Station autre)

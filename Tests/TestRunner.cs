@@ -1,71 +1,48 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace LivinParis.Tests
 {
     public class TestRunner
     {
-        public static void ExecuterTousLesTests()
+        public void ExecuterTousLesTests()
         {
-            Console.WriteLine("Démarrage des tests...\n");
-
-            // Tests Client
-            var clientTests = new ClientTests();
-            ExecuterTest("Test_Creation_Client_Particulier", clientTests.Test_Creation_Client_Particulier);
-            ExecuterTest("Test_Creation_Client_Entreprise", clientTests.Test_Creation_Client_Entreprise);
-
-            // Tests Cuisinier
-            var cuisinierTests = new CuisinierTests();
-            ExecuterTest("Test_Creation_Cuisinier", cuisinierTests.Test_Creation_Cuisinier);
-            ExecuterTest("Test_ToString_Cuisinier", cuisinierTests.Test_ToString_Cuisinier);
-
-            // Tests Authentification
-            var authentificationTests = new AuthentificationTests();
-            ExecuterTest("Test_Enregistrement_Et_Authentification", authentificationTests.Test_Enregistrement_Et_Authentification);
-            ExecuterTest("Test_Authentification_Echec", authentificationTests.Test_Authentification_Echec);
-
-            // Tests GestionClients
-            var gestionClientsTests = new GestionClientsTests();
-            ExecuterTest("Test_Ajouter_Client", gestionClientsTests.Test_Ajouter_Client);
-            ExecuterTest("Test_Modifier_Client", gestionClientsTests.Test_Modifier_Client);
-            ExecuterTest("Test_Supprimer_Client", gestionClientsTests.Test_Supprimer_Client);
-            ExecuterTest("Test_Tri_Clients", gestionClientsTests.Test_Tri_Clients);
-
-            // Tests GestionCuisiniers
-            var gestionCuisiniersTests = new GestionCuisiniersTests();
-            ExecuterTest("Test_Gestion_Cuisinier", gestionCuisiniersTests.Test_Gestion_Cuisinier);
-            ExecuterTest("Test_Plats_Et_Clients", gestionCuisiniersTests.Test_Plats_Et_Clients);
-
-            // Tests GestionCommandes
-            var gestionCommandesTests = new GestionCommandesTests();
-            ExecuterTest("Test_Creation_Et_Modification_Commande", gestionCommandesTests.Test_Creation_Et_Modification_Commande);
-            ExecuterTest("Test_Cycle_Vie_Commande", gestionCommandesTests.Test_Cycle_Vie_Commande);
-
-            // Tests GestionStatistiques
-            var gestionStatistiquesTests = new GestionStatistiquesTests();
-            ExecuterTest("Test_Statistiques_Commandes", gestionStatistiquesTests.Test_Statistiques_Commandes);
-
-            // Tests ReseauMetro
-            var reseauMetroTests = new ReseauMetroTests();
-            ExecuterTest("Test_Reseau_Metro", reseauMetroTests.Test_Reseau_Metro);
-
-            // Tests ChargementXML
-            var chargementXMLTests = new ChargementXMLTests();
-            ExecuterTest("Test_Chargement_XML", chargementXMLTests.Test_Chargement_XML);
-
-            Console.WriteLine("\nTous les tests sont terminés.");
-        }
-
-        private static void ExecuterTest(string nomTest, Action test)
-        {
-            try
+            var tests = new List<(string Nom, Action Test)>
             {
-                test();
-                Console.WriteLine($"✓ {nomTest} : Succès");
-            }
-            catch (Exception ex)
+                ("Authentification - Enregistrement et authentification", () => new AuthentificationTests().Test_Enregistrement_Et_Authentification()),
+                ("Authentification - Échec d'authentification", () => new AuthentificationTests().Test_Authentification_Echec()),
+                ("Client - Création client particulier", () => new ClientTests().Test_Creation_Client_Particulier()),
+                ("Client - Création client entreprise", () => new ClientTests().Test_Creation_Client_Entreprise()),
+                ("Cuisinier - Création", () => new CuisinierTests().Test_Creation_Cuisinier()),
+                ("Cuisinier - ToString", () => new CuisinierTests().Test_ToString_Cuisinier()),
+                ("GestionClients - Ajout", () => new GestionClientsTests().Test_Ajouter_Client()),
+                ("GestionClients - Modification", () => new GestionClientsTests().Test_Modifier_Client()),
+                ("GestionClients - Suppression", () => new GestionClientsTests().Test_Supprimer_Client()),
+                ("GestionClients - Tri", () => new GestionClientsTests().Test_Tri_Clients()),
+                ("GestionCuisiniers - Ajout/Modification/Suppression", () => new GestionCuisiniersTests().Test_Ajouter_Modifier_Supprimer_Cuisinier()),
+                ("GestionCuisiniers - Gestion des plats", () => new GestionCuisiniersTests().Test_Gestion_Plats()),
+                ("GestionCuisiniers - Gestion des clients servis", () => new GestionCuisiniersTests().Test_Gestion_Clients_Servis()),
+                ("GestionCommandes - Création", () => new GestionCommandesTests().Test_Creation_Commande()),
+                ("GestionCommandes - Modification", () => new GestionCommandesTests().Test_Modification_Commande()),
+                ("GestionCommandes - Suppression", () => new GestionCommandesTests().Test_Suppression_Commande()),
+                ("GestionCommandes - Simulation", () => new GestionCommandesTests().Test_Simulation_Commande()),
+                ("GestionStatistiques - Statistiques globales", () => new GestionStatistiquesTests().Test_Statistiques_Globales()),
+                ("GestionStatistiques - Statistiques par client", () => new GestionStatistiquesTests().Test_Statistiques_Par_Client()),
+                ("GestionStatistiques - Statistiques par cuisinier", () => new GestionStatistiquesTests().Test_Statistiques_Par_Cuisinier())
+            };
+
+            foreach (var test in tests)
             {
-                Console.WriteLine($"✗ {nomTest} : Échec");
-                Console.WriteLine($"  Erreur : {ex.Message}\n");
+                try
+                {
+                    test.Test();
+                    Console.WriteLine($"✅ {test.Nom} : Succès");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"❌ {test.Nom} : Échec - {ex.Message}");
+                }
             }
         }
     }

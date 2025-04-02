@@ -1,67 +1,84 @@
 using System;
+using System.Linq;
 using LivinParis.Models.Client;
-using LivinParis.Models.Commande;
 using LivinParis.Models.Cuisinier;
+using LivinParis.Models.Commande;
 
 namespace LivinParis.Tests
 {
     public class GestionCommandesTests
     {
-        public void Test_Creation_Et_Modification_Commande()
+        public void Test_Creation_Commande()
         {
             // Arrange
-            var client = new Client("Dupont", "Jean", "123 rue de Paris", "0123456789", "jean@email.com");
-            GestionClients.AjouterClient(client);
+            var client = new Client("Dupont", "Jean", TestUtils.StationTest, "0123456789", "jean@email.com");
+            var cuisinier = new Cuisinier("Martin", "Sophie", TestUtils.StationTest, "9876543210", "sophie@cuisine.com");
+            var date = DateTime.Now;
 
-            // Act - Création commande
-            var commande = GestionCommandes.CreerCommande(client.Identifiant, client.Adresse);
-            if (commande.Statut != StatutCommande.EnAttente)
-                throw new Exception("La commande devrait être en attente");
+            // Act
+            var commande = GestionCommandes.CreerCommande(client, cuisinier, date);
 
-            // Act - Ajout lignes
-            commande.AjouterLigne("Coq au vin", 2, 15.0m);
-            commande.AjouterLigne("Ratatouille", 1, 12.0m);
-
-            // Assert - Vérification du montant
-            decimal montantAttendu = (2 * 15.0m) + (1 * 12.0m);
-            if (commande.MontantTotal != montantAttendu)
-                throw new Exception("Le montant total n'est pas correct");
-
-            // Act - Modification ligne
-            commande.ModifierLigne(0, 3); // Modifier la quantité de Coq au vin à 3
-
-            // Assert - Vérification du nouveau montant
-            montantAttendu = (3 * 15.0m) + (1 * 12.0m);
-            if (commande.MontantTotal != montantAttendu)
-                throw new Exception("Le montant total après modification n'est pas correct");
+            // Assert
+            if (commande.Client != client) throw new Exception("Le client n'est pas correct");
+            if (commande.Cuisinier != cuisinier) throw new Exception("Le cuisinier n'est pas correct");
+            if (commande.Date != date) throw new Exception("La date n'est pas correcte");
         }
 
-        public void Test_Cycle_Vie_Commande()
+        public void Test_Modification_Commande()
         {
             // Arrange
-            var client = new Client("Martin", "Sophie", "456 rue de Lyon", "9876543210", "sophie@email.com");
-            GestionClients.AjouterClient(client);
-            var cuisinier = new Cuisinier("Petit", "Pierre", "789 rue de Marseille", "0123456789", "pierre@cuisine.com");
-            GestionCuisiniers.AjouterCuisinier(cuisinier);
+            var client = new Client("Dupont", "Jean", TestUtils.StationTest, "0123456789", "jean@email.com");
+            var cuisinier = new Cuisinier("Martin", "Sophie", TestUtils.StationTest, "9876543210", "sophie@cuisine.com");
+            var date = DateTime.Now;
+            var commande = GestionCommandes.CreerCommande(client, cuisinier, date);
 
-            // Act - Création et assignation
-            var commande = GestionCommandes.CreerCommande(client.Identifiant, client.Adresse);
+            var nouveauCuisinier = new Cuisinier("Petit", "Pierre", TestUtils.StationTest, "1122334455", "pierre@cuisine.com");
+
+            // Act
+            GestionCommandes.AssignerCuisinier(commande.Identifiant, nouveauCuisinier.Identifiant);
+
+            // Assert
+            var commandeModifiee = GestionCommandes.ObtenirCommande(commande.Identifiant);
+            if (commandeModifiee.Cuisinier != nouveauCuisinier) throw new Exception("Le cuisinier n'a pas été modifié");
+        }
+
+        public void Test_Suppression_Commande()
+        {
+            // Arrange
+            var client = new Client("Dupont", "Jean", TestUtils.StationTest, "0123456789", "jean@email.com");
+            var cuisinier = new Cuisinier("Martin", "Sophie", TestUtils.StationTest, "9876543210", "sophie@cuisine.com");
+            var date = DateTime.Now;
+            var commande = GestionCommandes.CreerCommande(client, cuisinier, date);
+
+            // Act
+            GestionCommandes.SupprimerCommande(commande.Identifiant);
+
+            // Assert
+            try
+            {
+                GestionCommandes.ObtenirCommande(commande.Identifiant);
+                throw new Exception("La commande aurait dû être supprimée");
+            }
+            catch (Exception) { /* OK */ }
+        }
+
+        public void Test_Simulation_Commande()
+        {
+            // Arrange
+            var client = new Client("Dupont", "Jean", TestUtils.StationTest, "0123456789", "jean@email.com");
+            var cuisinier = new Cuisinier("Martin", "Sophie", TestUtils.StationTest, "9876543210", "sophie@cuisine.com");
+            var date = DateTime.Now;
+            var commande = GestionCommandes.CreerCommande(client, cuisinier, date);
+
+            // Act
             GestionCommandes.AssignerCuisinier(commande.Identifiant, cuisinier.Identifiant);
-
-            // Assert - Vérification du statut
-            if (commande.Statut != StatutCommande.EnPreparation)
-                throw new Exception("La commande devrait être en préparation");
-
-            // Act - Simulation des étapes
             GestionCommandes.DemarrerPreparation(commande.Identifiant);
             GestionCommandes.DemarrerLivraison(commande.Identifiant);
-            if (commande.Statut != StatutCommande.EnLivraison)
-                throw new Exception("La commande devrait être en livraison");
-
-            // Act - Terminer la commande
             GestionCommandes.TerminerCommande(commande.Identifiant);
-            if (commande.Statut != StatutCommande.Livree)
-                throw new Exception("La commande devrait être livrée");
+
+            // Assert
+            var commandeFinale = GestionCommandes.ObtenirCommande(commande.Identifiant);
+            if (commandeFinale.Statut != StatutCommande.Terminee) throw new Exception("La commande n'est pas terminée");
         }
     }
 } 

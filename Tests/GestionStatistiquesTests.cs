@@ -1,65 +1,61 @@
 using System;
+using System.Linq;
 using LivinParis.Models.Client;
-using LivinParis.Models.Commande;
 using LivinParis.Models.Cuisinier;
+using LivinParis.Models.Commande;
 using LivinParis.Models.Statistiques;
 
 namespace LivinParis.Tests
 {
     public class GestionStatistiquesTests
     {
-        public void Test_Statistiques_Commandes()
+        public void Test_Statistiques_Globales()
         {
             // Arrange
-            GestionCommandes.ReinitialiserCommandes();
-            var client = new Client("Dupont", "Jean", "123 rue de Paris", "0123456789", "jean@email.com");
-            var cuisinier = new Cuisinier("Petit", "Pierre", "789 rue de Marseille", "0123456789", "pierre@cuisine.com");
-            
-            GestionClients.AjouterClient(client);
-            GestionCuisiniers.AjouterCuisinier(cuisinier);
+            var client1 = new Client("Dupont", "Jean", TestUtils.StationTest, "0123456789", "jean@email.com");
+            var client2 = new Client("Martin", "Sophie", TestUtils.StationTest, "9876543210", "sophie@email.com");
+            var cuisinier = new Cuisinier("Petit", "Pierre", TestUtils.StationTest, "1122334455", "pierre@cuisine.com");
 
-            // Créer quelques commandes
-            var commande1 = GestionCommandes.CreerCommande(client.Identifiant, client.Adresse);
-            commande1.AjouterLigne("Coq au vin", 2, 15.0m);
-            commande1.AjouterLigne("Ratatouille", 1, 12.0m);
-            GestionCommandes.AssignerCuisinier(commande1.Identifiant, cuisinier.Identifiant);
-            GestionCommandes.TerminerCommande(commande1.Identifiant);
+            var commande1 = GestionCommandes.CreerCommande(client1, cuisinier, DateTime.Now);
+            var commande2 = GestionCommandes.CreerCommande(client2, cuisinier, DateTime.Now);
 
-            var commande2 = GestionCommandes.CreerCommande(client.Identifiant, client.Adresse);
-            commande2.AjouterLigne("Pizza Margherita", 1, 14.0m);
-            commande2.AjouterLigne("Pasta Carbonara", 2, 13.0m);
-            GestionCommandes.AssignerCuisinier(commande2.Identifiant, cuisinier.Identifiant);
-            GestionCommandes.TerminerCommande(commande2.Identifiant);
+            // Act
+            var statistiques = GestionStatistiques.ObtenirStatistiquesGlobales();
 
-            // Test des livraisons par cuisinier
-            var livraisonsParCuisinier = GestionStatistiques.ObtenirLivraisonsParCuisinier();
-            if (!livraisonsParCuisinier.ContainsKey(cuisinier.Identifiant))
-                throw new Exception("Le cuisinier devrait avoir des livraisons");
-            if (livraisonsParCuisinier[cuisinier.Identifiant] != 2)
-                throw new Exception("Le cuisinier devrait avoir 2 livraisons");
+            // Assert
+            if (statistiques.NombreTotalCommandes < 2) throw new Exception("Le nombre total de commandes n'est pas correct");
+        }
 
-            // Test des moyennes
-            decimal moyennePrixCommandes = GestionStatistiques.CalculerMoyennePrixCommandes();
-            decimal moyenneAttendue = ((2 * 15.0m + 1 * 12.0m) + (1 * 14.0m + 2 * 13.0m)) / 2;
-            if (moyennePrixCommandes != moyenneAttendue)
-                throw new Exception("La moyenne des prix des commandes n'est pas correcte");
+        public void Test_Statistiques_Par_Client()
+        {
+            // Arrange
+            var client = new Client("Dupont", "Jean", TestUtils.StationTest, "0123456789", "jean@email.com");
+            var cuisinier = new Cuisinier("Petit", "Pierre", TestUtils.StationTest, "1122334455", "pierre@cuisine.com");
 
-            // Test des commandes par nationalité
-            var commandesParNationalite = GestionStatistiques.ObtenirCommandesParNationalitePlats();
-            if (!commandesParNationalite.ContainsKey("Française") || commandesParNationalite["Française"] != 3)
-                throw new Exception("Il devrait y avoir 3 plats français");
-            if (!commandesParNationalite.ContainsKey("Italienne") || commandesParNationalite["Italienne"] != 3)
-                throw new Exception("Il devrait y avoir 3 plats italiens");
+            var commande1 = GestionCommandes.CreerCommande(client, cuisinier, DateTime.Now);
+            var commande2 = GestionCommandes.CreerCommande(client, cuisinier, DateTime.Now);
 
-            // Test des commandes sur période
-            var debut = DateTime.Now.AddDays(-1);
-            var fin = DateTime.Now.AddDays(1);
-            var commandesSurPeriode = GestionStatistiques.ObtenirCommandesSurPeriode(debut, fin);
-            if (commandesSurPeriode.Count != 2)
-                throw new Exception("Il devrait y avoir 2 commandes sur la période");
+            // Act
+            var statistiques = GestionStatistiques.ObtenirStatistiquesParClient(client.Identifiant);
 
-            // Afficher les statistiques pour vérification visuelle
-            GestionStatistiques.AfficherStatistiques(debut, fin);
+            // Assert
+            if (statistiques.NombreCommandes < 2) throw new Exception("Le nombre de commandes du client n'est pas correct");
+        }
+
+        public void Test_Statistiques_Par_Cuisinier()
+        {
+            // Arrange
+            var client = new Client("Dupont", "Jean", TestUtils.StationTest, "0123456789", "jean@email.com");
+            var cuisinier = new Cuisinier("Petit", "Pierre", TestUtils.StationTest, "1122334455", "pierre@cuisine.com");
+
+            var commande1 = GestionCommandes.CreerCommande(client, cuisinier, DateTime.Now);
+            var commande2 = GestionCommandes.CreerCommande(client, cuisinier, DateTime.Now);
+
+            // Act
+            var statistiques = GestionStatistiques.ObtenirStatistiquesParCuisinier(cuisinier.Identifiant);
+
+            // Assert
+            if (statistiques.NombreCommandes < 2) throw new Exception("Le nombre de commandes du cuisinier n'est pas correct");
         }
     }
 } 

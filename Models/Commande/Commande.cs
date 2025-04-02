@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using LivinParis.Models.Client;
 using LivinParis.Models.Cuisinier;
+using LivinParis.Models.Trajets;
 
 namespace LivinParis.Models.Commande
 {
@@ -11,46 +13,47 @@ namespace LivinParis.Models.Commande
         EnPreparation,
         EnLivraison,
         Livree,
+        Terminee,
         Annulee
     }
 
     public class Commande
     {
         public string Identifiant { get; private set; }
-        public string IdentifiantClient { get; set; }
+        public string IdentifiantClient { get; private set; }
         public string IdentifiantCuisinier { get; set; }
         public DateTime DateCommande { get; set; }
         public string AdresseLivraison { get; set; }
-        public List<LigneCommande> LignesCommande { get; set; }
+        public List<LigneCommande> LignesCommande { get; private set; }
         public StatutCommande Statut { get; set; }
-        public decimal MontantTotal { get; private set; }
+        public decimal MontantTotal => LignesCommande.Sum(l => l.SousTotal);
+        public Station Station { get; private set; }
+        public Models.Client.Client Client { get; private set; }
+        public Models.Cuisinier.Cuisinier Cuisinier { get; private set; }
+        public DateTime Date { get; set; }
 
-        public Commande(string identifiantClient, string adresseLivraison)
+        public Commande(string identifiantClient, Station station)
         {
-            Identifiant = Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper();
+            Identifiant = Guid.NewGuid().ToString().Substring(0, 8);
             IdentifiantClient = identifiantClient;
             DateCommande = DateTime.Now;
-            AdresseLivraison = adresseLivraison;
-            LignesCommande = new List<LigneCommande>();
+            Date = DateTime.Now;
             Statut = StatutCommande.EnAttente;
-            MontantTotal = 0;
+            LignesCommande = new List<LigneCommande>();
+            Station = station;
         }
 
         public void AjouterLigne(string nomPlat, int quantite, decimal prixUnitaire)
         {
-            var ligne = new LigneCommande(nomPlat, quantite, prixUnitaire);
-            LignesCommande.Add(ligne);
-            CalculerMontantTotal();
+            LignesCommande.Add(new LigneCommande(nomPlat, quantite, prixUnitaire));
         }
 
         public void ModifierLigne(int index, int nouvelleQuantite)
         {
-            if (index < 0 || index >= LignesCommande.Count)
-                throw new ArgumentException("Index de ligne invalide");
-
-            LignesCommande[index].Quantite = nouvelleQuantite;
-            LignesCommande[index].CalculerSousTotal();
-            CalculerMontantTotal();
+            if (index >= 0 && index < LignesCommande.Count)
+            {
+                LignesCommande[index].Quantite = nouvelleQuantite;
+            }
         }
 
         public void SupprimerLigne(int index)
@@ -59,16 +62,16 @@ namespace LivinParis.Models.Commande
                 throw new ArgumentException("Index de ligne invalide");
 
             LignesCommande.RemoveAt(index);
-            CalculerMontantTotal();
         }
 
-        private void CalculerMontantTotal()
+        public void DefinirClient(Models.Client.Client client)
         {
-            MontantTotal = 0;
-            foreach (var ligne in LignesCommande)
-            {
-                MontantTotal += ligne.SousTotal;
-            }
+            Client = client;
+        }
+
+        public void DefinirCuisinier(Models.Cuisinier.Cuisinier cuisinier)
+        {
+            Cuisinier = cuisinier;
         }
     }
 

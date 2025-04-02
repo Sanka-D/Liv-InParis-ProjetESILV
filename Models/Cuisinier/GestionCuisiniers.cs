@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using LivinParis.Models.Client;
+using LivinParis.Models.Trajets;
+using LivinParis.Models.Statistiques;
 
 namespace LivinParis.Models.Cuisinier
 {
@@ -11,6 +13,12 @@ namespace LivinParis.Models.Cuisinier
         private static Dictionary<string, List<Models.Client.Client>> _clientsServis = new Dictionary<string, List<Models.Client.Client>>();
         private static Dictionary<string, List<string>> _platsRealises = new Dictionary<string, List<string>>();
         private static Dictionary<string, string> _platDuJour = new Dictionary<string, string>();
+        private static ReseauMetro _reseauMetro;
+
+        public static void Initialiser(ReseauMetro reseauMetro)
+        {
+            _reseauMetro = reseauMetro;
+        }
 
         public static Cuisinier ObtenirCuisinier(string identifiant)
         {
@@ -23,6 +31,9 @@ namespace LivinParis.Models.Cuisinier
             if (cuisinier == null)
                 throw new ArgumentNullException(nameof(cuisinier), "Le cuisinier ne peut pas être null");
 
+            if (cuisinier.Station == null)
+                throw new ArgumentException("La station ne peut pas être null");
+
             _cuisiniers.Add(cuisinier);
             _clientsServis[cuisinier.Identifiant] = new List<Models.Client.Client>();
             _platsRealises[cuisinier.Identifiant] = new List<string>();
@@ -33,13 +44,16 @@ namespace LivinParis.Models.Cuisinier
             if (nouveauCuisinier == null)
                 throw new ArgumentNullException(nameof(nouveauCuisinier), "Le cuisinier ne peut pas être null");
 
+            if (nouveauCuisinier.Station == null)
+                throw new ArgumentException("La station ne peut pas être null");
+
             var cuisinierExistant = _cuisiniers.FirstOrDefault(c => c.Identifiant == identifiant);
             if (cuisinierExistant == null)
                 throw new Exception("Cuisinier non trouvé");
 
             cuisinierExistant.Nom = nouveauCuisinier.Nom;
             cuisinierExistant.Prenom = nouveauCuisinier.Prenom;
-            cuisinierExistant.Adresse = nouveauCuisinier.Adresse;
+            cuisinierExistant.Station = nouveauCuisinier.Station;
             cuisinierExistant.Telephone = nouveauCuisinier.Telephone;
             cuisinierExistant.Email = nouveauCuisinier.Email;
         }
@@ -101,50 +115,46 @@ namespace LivinParis.Models.Cuisinier
             return _platDuJour[identifiantCuisinier];
         }
 
-        public static List<Cuisinier> ObtenirCuisiniers()
-        {
-            return _cuisiniers;
-        }
-
-        public static List<(string Plat, int Frequence)> ObtenirPlatsParFrequence(string identifiantCuisinier)
+        public static List<string> ObtenirPlatsParFrequence(string identifiantCuisinier)
         {
             if (!_platsRealises.ContainsKey(identifiantCuisinier))
                 throw new Exception("Cuisinier non trouvé");
 
             return _platsRealises[identifiantCuisinier]
                 .GroupBy(p => p)
-                .Select(g => (Plat: g.Key, Frequence: g.Count()))
-                .OrderByDescending(x => x.Frequence)
+                .OrderByDescending(g => g.Count())
+                .Select(g => g.Key)
                 .ToList();
         }
 
-        // Affichage
+        public static List<Cuisinier> ObtenirCuisiniers()
+        {
+            return _cuisiniers;
+        }
+
         public static void AfficherStatistiquesCuisinier(string identifiantCuisinier)
         {
-            var cuisinier = _cuisiniers.FirstOrDefault(c => c.Identifiant == identifiantCuisinier);
+            var cuisinier = ObtenirCuisinier(identifiantCuisinier);
             if (cuisinier == null)
                 throw new Exception("Cuisinier non trouvé");
 
-            Console.WriteLine($"\nStatistiques pour {cuisinier.Prenom} {cuisinier.Nom}");
-            Console.WriteLine("----------------------------------------");
+            var statistiques = GestionStatistiques.ObtenirStatistiquesParCuisinier(identifiantCuisinier);
+            var platsFrequents = ObtenirPlatsParFrequence(identifiantCuisinier);
+            var platDuJour = ObtenirPlatDuJour(identifiantCuisinier);
 
-            // Afficher le plat du jour
-            Console.WriteLine($"Plat du jour : {ObtenirPlatDuJour(identifiantCuisinier)}");
-
-            // Afficher les clients servis
-            Console.WriteLine("\nClients servis :");
-            var clients = ObtenirClientsServis(identifiantCuisinier);
-            foreach (var client in clients)
+            Console.WriteLine($"\n=== STATISTIQUES DE {cuisinier.Prenom} {cuisinier.Nom} ===");
+            Console.WriteLine($"Station : {cuisinier.Station.Nom}");
+            Console.WriteLine($"Nombre de commandes : {statistiques.NombreCommandes}");
+            Console.WriteLine($"Montant total : {statistiques.MontantTotal:C2}");
+            Console.WriteLine($"Plat du jour : {platDuJour}");
+            
+            if (platsFrequents.Any())
             {
-                Console.WriteLine($"- {client.Prenom} {client.Nom}");
-            }
-
-            // Afficher les plats par fréquence
-            Console.WriteLine("\nPlats réalisés (par fréquence) :");
-            var plats = ObtenirPlatsParFrequence(identifiantCuisinier);
-            foreach (var plat in plats)
-            {
-                Console.WriteLine($"- {plat.Plat} : {plat.Frequence} fois");
+                Console.WriteLine("\nPlats les plus fréquents :");
+                foreach (var plat in platsFrequents.Take(5))
+                {
+                    Console.WriteLine($"- {plat}");
+                }
             }
         }
     }

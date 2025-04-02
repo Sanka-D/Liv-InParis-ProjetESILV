@@ -1,4 +1,5 @@
 using System;
+using LivinParis.Models.Trajets;
 
 namespace LivinParis.Models.Client
 {
@@ -6,7 +7,7 @@ namespace LivinParis.Models.Client
     {
         public string Nom { get; set; }
         public string Prenom { get; set; }
-        public string Adresse { get; set; }
+        public Station Station { get; set; }
         public string Telephone { get; set; }
         public string Email { get; set; }
         public bool EstEntreprise { get; set; }
@@ -14,13 +15,13 @@ namespace LivinParis.Models.Client
         public string ReferentEntreprise { get; set; }
         public decimal MontantAchats { get; set; }
 
-        public Client(string nom, string prenom, string adresse, string telephone, string email, 
+        public Client(string nom, string prenom, Station station, string telephone, string email, 
                     bool estEntreprise = false, string nomEntreprise = null, string referentEntreprise = null)
             : base()
         {
             Nom = nom;
             Prenom = prenom;
-            Adresse = adresse;
+            Station = station;
             Telephone = telephone;
             Email = email;
             EstEntreprise = estEntreprise;
