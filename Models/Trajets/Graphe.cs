@@ -172,7 +172,7 @@ namespace LivinParis.Models.Trajets
                 }
             }
 
-            // Reconstruction du chemin
+            /// Reconstruction du chemin
             var chemin = new List<T>();
             var debut = noeuds.IndexOf(depart);
             var fin = noeuds.IndexOf(arrivee);

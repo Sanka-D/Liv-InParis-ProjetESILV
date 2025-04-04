@@ -26,8 +26,8 @@ namespace LivinParis.Models.Trajets
 
         public double CalculerDistance(Station autre)
         {
-            // Formule de Haversine
-            const double R = 6371; // Rayon de la Terre en km
+            /// Formule de Haversine
+            const double R = 6371; /// Rayon de la Terre en km
             var lat1 = Latitude * Math.PI / 180;
             var lat2 = autre.Latitude * Math.PI / 180;
             var deltaLat = (autre.Latitude - Latitude) * Math.PI / 180;
