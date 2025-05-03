@@ -4,6 +4,12 @@ using System.Linq;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.IO;
+using SDColor = System.Drawing.Color;
+using SDPointF = System.Drawing.PointF;
+using SDRectangleF = System.Drawing.RectangleF;
+using ImgColor = SixLabors.ImageSharp.Color;
+using ImgPointF = SixLabors.ImageSharp.PointF;
+using ImgRectangleF = SixLabors.ImageSharp.RectangleF;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
@@ -12,6 +18,9 @@ using SixLabors.Fonts;
 
 namespace LivinParis.Models.Trajets
 {
+    /// <summary>
+    /// Provides visualization capabilities for the metro network.
+    /// </summary>
     public class VisualisationReseau
     {
         private readonly ReseauMetro _reseau;
@@ -22,6 +31,9 @@ namespace LivinParis.Models.Trajets
         private readonly float _offsetY;
         private List<Station> _trajet;
 
+        /// <summary>
+        /// Initializes a new instance of the VisualisationReseau class.
+        /// </summary>
         public VisualisationReseau(ReseauMetro reseau, int width = 1200, int height = 800)
         {
             _reseau = reseau;
@@ -44,18 +56,88 @@ namespace LivinParis.Models.Trajets
             _offsetY = (_height - (float)(maxLat - minLat) * _scale) / 2;
         }
 
-        private PointF ConvertirCoordonnees(double latitude, double longitude)
+        /// <summary>
+        /// Converts geographical coordinates to image coordinates.
+        /// </summary>
+        private ImgPointF ConvertirCoordonnees(double latitude, double longitude)
         {
             var x = (float)((longitude - _reseau.Stations.Values.Min(s => s.Longitude)) * _scale) + _offsetX;
             var y = (float)((_reseau.Stations.Values.Max(s => s.Latitude) - latitude) * _scale) + _offsetY;
-            return new PointF(x, y);
+            return new ImgPointF(x, y);
         }
 
+        /// <summary>
+        /// Sets the path to be drawn.
+        /// </summary>
         public void DessinerTrajet(List<Station> trajet)
         {
             _trajet = trajet;
         }
 
+        /// <summary>
+        /// Draws the graph with node coloring.
+        /// </summary>
+        public void DessinerColoration(Dictionary<Noeud<Station>, int> coloring, string chemin)
+        {
+            using (var image = new Image<Rgba32>(_width, _height))
+            {
+                image.Mutate(x => x.Fill(ImgColor.White));
+
+                // Define colors for the graph
+                var colors = new[]
+                {
+                    ImgColor.Red,
+                    ImgColor.Blue,
+                    ImgColor.Green,
+                    ImgColor.Yellow,
+                    ImgColor.Purple,
+                    ImgColor.Orange,
+                    ImgColor.Cyan,
+                    ImgColor.Magenta,
+                    ImgColor.LimeGreen,
+                    ImgColor.HotPink
+                };
+
+                // Draw edges first
+                foreach (var noeud in _reseau.Graphe.Noeuds.Values)
+                {
+                    var point1 = ConvertirCoordonnees(noeud.Valeur.Latitude, noeud.Valeur.Longitude);
+                    foreach (var voisin in noeud.Voisins)
+                    {
+                        var point2 = ConvertirCoordonnees(voisin.Key.Valeur.Latitude, voisin.Key.Valeur.Longitude);
+                        var pen = new SolidPen(ImgColor.Gray, 2f);
+                        image.Mutate(x => x.DrawLine(pen, point1, point2));
+                    }
+                }
+
+                // Draw nodes with their assigned colors
+                foreach (var noeud in _reseau.Graphe.Noeuds.Values)
+                {
+                    var point = ConvertirCoordonnees(noeud.Valeur.Latitude, noeud.Valeur.Longitude);
+                    var color = colors[coloring[noeud] % colors.Length];
+                    var rect = new ImgRectangleF(point.X - 8, point.Y - 8, 16, 16);
+                    image.Mutate(x => x.Fill(color, rect));
+                }
+
+                // Add node labels
+                var font = SystemFonts.Get("DejaVu Sans").CreateFont(12);
+                foreach (var noeud in _reseau.Graphe.Noeuds.Values)
+                {
+                    var point = ConvertirCoordonnees(noeud.Valeur.Latitude, noeud.Valeur.Longitude);
+                    var options = new RichTextOptions(font)
+                    {
+                        Origin = new ImgPointF(point.X + 10, point.Y - 10)
+                    };
+                    image.Mutate(x => x.DrawText(options, noeud.Valeur.Nom, ImgColor.Black));
+                }
+
+                image.Save(chemin);
+            }
+        }
+
+        /// <summary>
+        /// Saves the network visualization to an image file.
+        /// </summary>
         public void SauvegarderImage(string chemin)
         {
             try
@@ -63,7 +145,7 @@ namespace LivinParis.Models.Trajets
                 using (var image = new Image<Rgba32>(_width, _height))
                 {
                     // Dessiner le fond
-                    image.Mutate(x => x.Fill(Color.White));
+                    image.Mutate(x => x.Fill(ImgColor.White));
 
                     // Dessiner les lignes de métro en gris clair
                     foreach (var noeud in _reseau.Graphe.Noeuds.Values)
@@ -72,7 +154,8 @@ namespace LivinParis.Models.Trajets
                         {
                             var point1 = ConvertirCoordonnees(noeud.Valeur.Latitude, noeud.Valeur.Longitude);
                             var point2 = ConvertirCoordonnees(voisin.Key.Valeur.Latitude, voisin.Key.Valeur.Longitude);
-                            image.Mutate(x => x.DrawLines(Color.LightGray, 1f, new[] { point1, point2 }));
+                            var pen = new SolidPen(ImgColor.LightGray, 1f);
+                            image.Mutate(x => x.DrawLine(pen, point1, point2));
                         }
                     }
 
@@ -80,8 +163,8 @@ namespace LivinParis.Models.Trajets
                     foreach (var station in _reseau.Stations.Values)
                     {
                         var point = ConvertirCoordonnees(station.Latitude, station.Longitude);
-                        var rect = new RectangleF(point.X - 3, point.Y - 3, 6, 6);
-                        image.Mutate(x => x.Fill(Color.LightBlue, rect));
+                        var rect = new ImgRectangleF(point.X - 3, point.Y - 3, 6, 6);
+                        image.Mutate(x => x.Fill(ImgColor.LightBlue, rect));
                     }
 
                     // Dessiner le trajet s'il existe
@@ -92,28 +175,28 @@ namespace LivinParis.Models.Trajets
                         {
                             var point1 = ConvertirCoordonnees(_trajet[i].Latitude, _trajet[i].Longitude);
                             var point2 = ConvertirCoordonnees(_trajet[i + 1].Latitude, _trajet[i + 1].Longitude);
-                            image.Mutate(x => x.DrawLines(Color.Red, 5f, new[] { point1, point2 }));
+                            var pen = new SolidPen(ImgColor.Red, 5f);
+                            image.Mutate(x => x.DrawLine(pen, point1, point2));
                         }
 
                         // Mettre en évidence les stations du trajet en rouge vif
                         foreach (var station in _trajet)
                         {
                             var point = ConvertirCoordonnees(station.Latitude, station.Longitude);
-                            var rect = new RectangleF(point.X - 6, point.Y - 6, 12, 12);
-                            image.Mutate(x => x.Fill(Color.Red, rect));
+                            var rect = new ImgRectangleF(point.X - 6, point.Y - 6, 12, 12);
+                            image.Mutate(x => x.Fill(ImgColor.Red, rect));
                         }
 
                         // Ajouter les noms des stations du trajet en rouge
-                        var font = SystemFonts.CreateFont("DejaVu Sans", 12);
+                        var font = SystemFonts.Get("DejaVu Sans").CreateFont(12);
                         foreach (var station in _trajet)
                         {
                             var point = ConvertirCoordonnees(station.Latitude, station.Longitude);
-                            image.Mutate(x => x.DrawText(
-                                station.Nom,
-                                font,
-                                Color.Red,
-                                new PointF(point.X + 7, point.Y - 7)
-                            ));
+                            var options = new RichTextOptions(font)
+                            {
+                                Origin = new ImgPointF(point.X + 7, point.Y - 7)
+                            };
+                            image.Mutate(x => x.DrawText(options, station.Nom, ImgColor.Red));
                         }
                     }
 
@@ -131,6 +214,9 @@ namespace LivinParis.Models.Trajets
             }
         }
 
+        /// <summary>
+        /// Opens the generated image using the appropriate viewer for the current platform.
+        /// </summary>
         private void OuvrirImage(string chemin)
         {
             try

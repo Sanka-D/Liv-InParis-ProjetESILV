@@ -2,18 +2,34 @@ using System;
 
 namespace LivinParis.Models.Trajets
 {
+    /// <summary>
+    /// Represents a metro line connecting two stations.
+    /// </summary>
     public class Ligne
     {
-        public int Id { get; private set; }
-        public string Nom { get; private set; }
-        public Station StationDepart { get; private set; }
-        public Station StationArrivee { get; private set; }
-        public double Duree { get; private set; }
+        /// <summary>
+        /// Gets or sets the departure station.
+        /// </summary>
+        public Station StationDepart { get; set; }
 
-        public Ligne(int id, string nom, Station stationDepart, Station stationArrivee, double duree)
+        /// <summary>
+        /// Gets or sets the arrival station.
+        /// </summary>
+        public Station StationArrivee { get; set; }
+
+        /// <summary>
+        /// Gets or sets the duration of travel between stations in minutes.
+        /// </summary>
+        public double Duree { get; set; }
+
+        /// <summary>
+        /// Initializes a new instance of the Ligne class.
+        /// </summary>
+        /// <param name="stationDepart">The departure station.</param>
+        /// <param name="stationArrivee">The arrival station.</param>
+        /// <param name="duree">The duration of travel in minutes.</param>
+        public Ligne(Station stationDepart, Station stationArrivee, double duree)
         {
-            Id = id;
-            Nom = nom;
             StationDepart = stationDepart;
             StationArrivee = stationArrivee;
             Duree = duree;

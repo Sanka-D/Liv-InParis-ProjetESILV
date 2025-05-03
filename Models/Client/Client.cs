@@ -1,33 +1,69 @@
 using System;
+using System.Collections.Generic;
 using LivinParis.Models.Trajets;
 
 namespace LivinParis.Models.Client
 {
+    /// <summary>
+    /// Represents a client in the system.
+    /// </summary>
     public class Client : Utilisateur
     {
-        public string Nom { get; set; }
-        public string Prenom { get; set; }
-        public Station Station { get; set; }
-        public string Telephone { get; set; }
-        public string Email { get; set; }
-        public bool EstEntreprise { get; set; }
-        public string NomEntreprise { get; set; }
-        public string ReferentEntreprise { get; set; }
-        public decimal MontantAchats { get; set; }
+        /// <summary>
+        /// Gets or sets the client's ID.
+        /// </summary>
+        public int Id { get; set; }
 
-        public Client(string nom, string prenom, Station station, string telephone, string email, 
-                    bool estEntreprise = false, string nomEntreprise = null, string referentEntreprise = null)
-            : base()
+        /// <summary>
+        /// Gets or sets the client's last name.
+        /// </summary>
+        public string Nom { get; set; }
+
+        /// <summary>
+        /// Gets or sets the client's first name.
+        /// </summary>
+        public string Prenom { get; set; }
+
+        /// <summary>
+        /// Gets or sets the client's address.
+        /// </summary>
+        public string Adresse { get; set; }
+
+        /// <summary>
+        /// Gets or sets the client's phone number.
+        /// </summary>
+        public string Telephone { get; set; }
+
+        /// <summary>
+        /// Gets or sets the client's email address.
+        /// </summary>
+        public string Email { get; set; }
+
+        /// <summary>
+        /// Gets or sets the client's dietary preferences.
+        /// </summary>
+        public string Preferences { get; set; }
+
+        /// <summary>
+        /// Gets or sets the list of orders made by the client.
+        /// </summary>
+        public List<int> Commandes { get; set; }
+
+        /// <summary>
+        /// Initializes a new instance of the Client class.
+        /// </summary>
+        public Client()
         {
-            Nom = nom;
-            Prenom = prenom;
-            Station = station;
-            Telephone = telephone;
-            Email = email;
-            EstEntreprise = estEntreprise;
-            NomEntreprise = nomEntreprise;
-            ReferentEntreprise = referentEntreprise;
-            MontantAchats = 0;
+            Commandes = new List<int>();
+        }
+
+        /// <summary>
+        /// Returns a string representation of the client.
+        /// </summary>
+        /// <returns>A string containing the client's name and contact information.</returns>
+        public override string ToString()
+        {
+            return $"{Nom} {Prenom} - {Email} - {Telephone}";
         }
 
         public void AjouterAchat(decimal montant)
@@ -36,15 +72,6 @@ namespace LivinParis.Models.Client
                 throw new ArgumentException("Le montant ne peut pas être négatif");
                 
             MontantAchats += montant;
-        }
-
-        public override string ToString()
-        {
-            if (EstEntreprise)
-            {
-                return $"Entreprise : {NomEntreprise} - Référent : {ReferentEntreprise}";
-            }
-            return $"Client : {Prenom} {Nom}";
         }
     }
 } 

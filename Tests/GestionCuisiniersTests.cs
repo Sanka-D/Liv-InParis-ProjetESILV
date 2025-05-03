@@ -1,34 +1,99 @@
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using LivinParis.Models;
 using System;
-using System.Linq;
+using System.Collections.Generic;
 using LivinParis.Models.Client;
 using LivinParis.Models.Cuisinier;
 
 namespace LivinParis.Tests
 {
+    /// <summary>
+    /// Test class for cook management functionality.
+    /// </summary>
+    [TestClass]
     public class GestionCuisiniersTests
     {
-        public void Test_Ajouter_Modifier_Supprimer_Cuisinier()
+        private GestionCuisiniers gestionCuisiniers;
+        private Cuisinier cuisinier;
+
+        /// <summary>
+        /// Initializes test data before each test.
+        /// </summary>
+        [TestInitialize]
+        public void Initialize()
         {
-            // Arrange
-            var cuisinier = new Cuisinier("Martin", "Sophie", TestUtils.StationTest, "9876543210", "sophie@cuisine.com");
+            gestionCuisiniers = new GestionCuisiniers();
+            cuisinier = new Cuisinier
+            {
+                Id = 1,
+                Nom = "Dupont",
+                Prenom = "Jean",
+                Specialite = "Cuisine française",
+                Experience = 5,
+                Email = "jean.dupont@email.com",
+                Telephone = "0123456789"
+            };
+        }
 
-            // Act - Ajout
-            GestionCuisiniers.AjouterCuisinier(cuisinier);
-            var cuisiniers = GestionCuisiniers.ObtenirCuisiniers();
-            if (!cuisiniers.Contains(cuisinier)) throw new Exception("Le cuisinier n'a pas été ajouté");
+        /// <summary>
+        /// Tests adding a new cook.
+        /// </summary>
+        [TestMethod]
+        public void TestAjouterCuisinier()
+        {
+            var result = gestionCuisiniers.AjouterCuisinier(cuisinier);
+            Assert.IsTrue(result);
+        }
 
-            // Act - Modification
-            var nouveauCuisinier = new Cuisinier("Martin", "Sophie", TestUtils.StationTest, "1122334455", "sophie.martin@cuisine.com");
-            GestionCuisiniers.ModifierCuisinier(cuisinier.Identifiant, nouveauCuisinier);
-            var cuisinierModifie = GestionCuisiniers.ObtenirCuisinier(cuisinier.Identifiant);
-            if (cuisinierModifie.Telephone != "1122334455") throw new Exception("Le téléphone n'a pas été modifié");
-            if (cuisinierModifie.Email != "sophie.martin@cuisine.com") throw new Exception("L'email n'a pas été modifié");
-            if (cuisinierModifie.Station != TestUtils.StationTest) throw new Exception("La station n'a pas été modifiée");
+        /// <summary>
+        /// Tests retrieving a cook by ID.
+        /// </summary>
+        [TestMethod]
+        public void TestObtenirCuisinier()
+        {
+            gestionCuisiniers.AjouterCuisinier(cuisinier);
+            var cuisinierObtenu = gestionCuisiniers.ObtenirCuisinier(1);
+            Assert.IsNotNull(cuisinierObtenu);
+            Assert.AreEqual(cuisinier.Nom, cuisinierObtenu.Nom);
+        }
 
-            // Act - Suppression
-            GestionCuisiniers.SupprimerCuisinier(cuisinier.Identifiant);
-            cuisiniers = GestionCuisiniers.ObtenirCuisiniers();
-            if (cuisiniers.Contains(cuisinier)) throw new Exception("Le cuisinier n'a pas été supprimé");
+        /// <summary>
+        /// Tests updating cook information.
+        /// </summary>
+        [TestMethod]
+        public void TestModifierCuisinier()
+        {
+            gestionCuisiniers.AjouterCuisinier(cuisinier);
+            cuisinier.Specialite = "Cuisine italienne";
+            var result = gestionCuisiniers.ModifierCuisinier(cuisinier);
+            Assert.IsTrue(result);
+            var cuisinierModifie = gestionCuisiniers.ObtenirCuisinier(1);
+            Assert.AreEqual("Cuisine italienne", cuisinierModifie.Specialite);
+        }
+
+        /// <summary>
+        /// Tests deleting a cook.
+        /// </summary>
+        [TestMethod]
+        public void TestSupprimerCuisinier()
+        {
+            gestionCuisiniers.AjouterCuisinier(cuisinier);
+            var result = gestionCuisiniers.SupprimerCuisinier(1);
+            Assert.IsTrue(result);
+            var cuisinierSupprime = gestionCuisiniers.ObtenirCuisinier(1);
+            Assert.IsNull(cuisinierSupprime);
+        }
+
+        /// <summary>
+        /// Tests retrieving all cooks.
+        /// </summary>
+        [TestMethod]
+        public void TestObtenirTousLesCuisiniers()
+        {
+            gestionCuisiniers.AjouterCuisinier(cuisinier);
+            var cuisiniers = gestionCuisiniers.ObtenirTousLesCuisiniers();
+            Assert.IsNotNull(cuisiniers);
+            Assert.AreEqual(1, cuisiniers.Count);
         }
 
         public void Test_Gestion_Plats()

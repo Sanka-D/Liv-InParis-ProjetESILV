@@ -1,39 +1,65 @@
-using System;
-using LivinParis.Models.Trajets;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using LivinParis.Models;
+using System.IO;
+using System.Xml.Linq;
 
 namespace LivinParis.Tests
 {
+    /// <summary>
+    /// Test class for XML loading and saving functionality.
+    /// </summary>
+    [TestClass]
     public class ChargementXMLTests
     {
-        public void Test_Chargement_XML()
+        private string testFilePath;
+        private ReseauMetro reseau;
+
+        /// <summary>
+        /// Initializes test data before each test.
+        /// </summary>
+        [TestInitialize]
+        public void Initialize()
         {
-            // Arrange
-            string cheminFichier = "./Data/metro.xml";
+            testFilePath = "test_metro.xml";
+            reseau = new ReseauMetro();
+            var station1 = new Station(1, "Gare du Nord", "Ligne 4", 48.8800, 2.3550);
+            var station2 = new Station(2, "Châtelet", "Ligne 4", 48.8600, 2.3470);
+            reseau.AjouterStation(station1);
+            reseau.AjouterStation(station2);
+            reseau.AjouterConnexion(1, 2);
+        }
 
-            // Act
-            var reseau = ChargementXML.ChargerReseau(cheminFichier);
+        /// <summary>
+        /// Tests saving the metro network to XML.
+        /// </summary>
+        [TestMethod]
+        public void TestSauvegarderReseau()
+        {
+            ChargementXML.SauvegarderReseau(reseau, testFilePath);
+            Assert.IsTrue(File.Exists(testFilePath));
+        }
 
-            // Assert
-            if (reseau == null)
-                throw new Exception("Le réseau n'a pas été chargé");
+        /// <summary>
+        /// Tests loading the metro network from XML.
+        /// </summary>
+        [TestMethod]
+        public void TestChargerReseau()
+        {
+            ChargementXML.SauvegarderReseau(reseau, testFilePath);
+            var reseauCharge = ChargementXML.ChargerReseau(testFilePath);
+            Assert.IsNotNull(reseauCharge);
+            Assert.AreEqual(2, reseauCharge.Stations.Count);
+        }
 
-            // Vérifier que nous avons des stations
-            var station = reseau.ObtenirStation(2212); // Château de Vincennes
-            if (station == null)
-                throw new Exception("La première station n'a pas été chargée");
-
-            // Afficher quelques statistiques
-            Console.WriteLine($"\nRéseau chargé avec succès :");
-            Console.WriteLine($"Nombre de stations : {reseau.Stations.Count}");
-            
-            // Tester un trajet
-            try
+        /// <summary>
+        /// Cleans up test files after each test.
+        /// </summary>
+        [TestCleanup]
+        public void Cleanup()
+        {
+            if (File.Exists(testFilePath))
             {
-                reseau.ComparerAlgorithmes(2212, 2080); // De Château de Vincennes à Bérault
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Erreur lors de la comparaison des algorithmes : {ex.Message}");
+                File.Delete(testFilePath);
             }
         }
     }

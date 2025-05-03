@@ -25,7 +25,7 @@ namespace LivinParis.Models.Trajets
                 var station = new Station(
                     id,
                     stationElement.Element("nom").Value,
-                    stationElement.Element("adresse").Value,
+                    stationElement.Element("ligne")?.Value ?? "Non spécifiée",
                     double.Parse(stationElement.Element("latitude").Value),
                     double.Parse(stationElement.Element("longitude").Value)
                 );
@@ -38,19 +38,9 @@ namespace LivinParis.Models.Trajets
             {
                 foreach (var connexionElement in connexionsElement.Elements("connexion"))
                 {
-                    var station1Id = int.Parse(connexionElement.Element("station1").Value);
-                    var station2Id = int.Parse(connexionElement.Element("station2").Value);
-                    try
-                    {
-                        reseau.AjouterConnexion(station1Id, station2Id);
-                        // Ajouter aussi la connexion dans l'autre sens car le métro est bidirectionnel
-                        reseau.AjouterConnexion(station2Id, station1Id);
-                    }
-                    catch (ArgumentException)
-                    {
-                        // Ignorer les connexions invalides
-                        continue;
-                    }
+                    var station1Id = int.Parse(connexionElement.Element("station1").Value.Substring(2));
+                    var station2Id = int.Parse(connexionElement.Element("station2").Value.Substring(2));
+                    reseau.AjouterConnexion(station1Id, station2Id);
                 }
             }
 
@@ -98,7 +88,7 @@ namespace LivinParis.Models.Trajets
                             new XElement("station",
                                 new XAttribute("id", s.Id),
                                 new XElement("nom", s.Nom),
-                                new XElement("adresse", s.Adresse),
+                                new XElement("ligne", s.Ligne),
                                 new XElement("latitude", s.Latitude),
                                 new XElement("longitude", s.Longitude)
                             )

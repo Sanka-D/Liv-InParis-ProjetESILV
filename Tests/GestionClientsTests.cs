@@ -1,84 +1,97 @@
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using LivinParis.Models;
 using System;
-using System.Linq;
-using LivinParis.Models.Client;
+using System.Collections.Generic;
 
 namespace LivinParis.Tests
 {
+    /// <summary>
+    /// Test class for client management functionality.
+    /// </summary>
+    [TestClass]
     public class GestionClientsTests
     {
-        public void Test_Ajouter_Client()
+        private GestionClients gestionClients;
+        private Client client;
+
+        /// <summary>
+        /// Initializes test data before each test.
+        /// </summary>
+        [TestInitialize]
+        public void Initialize()
         {
-            // Arrange
-            var client = new Client("Dupont", "Jean", TestUtils.StationTest, "0123456789", "jean@email.com");
-
-            // Act
-            GestionClients.AjouterClient(client);
-            var clients = GestionClients.ObtenirClientsParOrdreAlphabetique();
-
-            // Assert
-            if (!clients.Contains(client)) throw new Exception("Le client n'a pas été ajouté");
+            gestionClients = new GestionClients();
+            client = new Client
+            {
+                Id = 1,
+                Nom = "Dupont",
+                Prenom = "Jean",
+                Email = "jean.dupont@email.com",
+                Telephone = "0123456789",
+                Adresse = "123 rue de Paris",
+                Preferences = "Végétarien"
+            };
         }
 
-        public void Test_Modifier_Client()
+        /// <summary>
+        /// Tests adding a new client.
+        /// </summary>
+        [TestMethod]
+        public void TestAjouterClient()
         {
-            // Arrange
-            var client = new Client("Dupont", "Jean", TestUtils.StationTest, "0123456789", "jean@email.com");
-            GestionClients.AjouterClient(client);
-
-            var nouveauClient = new Client("Dupont", "Jean", TestUtils.StationTest, "9876543210", "jean.dupont@email.com");
-
-            // Act
-            GestionClients.ModifierClient(client.Identifiant, nouveauClient);
-            var clients = GestionClients.ObtenirClientsParOrdreAlphabetique();
-            var clientModifie = clients.FirstOrDefault(c => c.Identifiant == client.Identifiant);
-
-            // Assert
-            if (clientModifie == null) throw new Exception("Le client n'a pas été trouvé");
-            if (clientModifie.Station != TestUtils.StationTest) throw new Exception("La station n'a pas été modifiée");
-            if (clientModifie.Telephone != "9876543210") throw new Exception("Le téléphone n'a pas été modifié");
-            if (clientModifie.Email != "jean.dupont@email.com") throw new Exception("L'email n'a pas été modifié");
+            var result = gestionClients.AjouterClient(client);
+            Assert.IsTrue(result);
         }
 
-        public void Test_Supprimer_Client()
+        /// <summary>
+        /// Tests retrieving a client by ID.
+        /// </summary>
+        [TestMethod]
+        public void TestObtenirClient()
         {
-            // Arrange
-            var client = new Client("Dupont", "Jean", TestUtils.StationTest, "0123456789", "jean@email.com");
-            GestionClients.AjouterClient(client);
-
-            // Act
-            GestionClients.SupprimerClient(client.Identifiant);
-            var clients = GestionClients.ObtenirClientsParOrdreAlphabetique();
-
-            // Assert
-            if (clients.Contains(client)) throw new Exception("Le client n'a pas été supprimé");
+            gestionClients.AjouterClient(client);
+            var clientObtenu = gestionClients.ObtenirClient(1);
+            Assert.IsNotNull(clientObtenu);
+            Assert.AreEqual(client.Nom, clientObtenu.Nom);
         }
 
-        public void Test_Tri_Clients()
+        /// <summary>
+        /// Tests updating client information.
+        /// </summary>
+        [TestMethod]
+        public void TestModifierClient()
         {
-            // Arrange
-            var client1 = new Client("Dupont", "Jean", TestUtils.StationTest, "0123456789", "jean@email.com");
-            var client2 = new Client("Martin", "Sophie", TestUtils.StationTest, "9876543210", "sophie@email.com");
-            var client3 = new Client("Albert", "Paul", TestUtils.StationTest, "1122334455", "paul@email.com");
+            gestionClients.AjouterClient(client);
+            client.Nom = "Martin";
+            var result = gestionClients.ModifierClient(client);
+            Assert.IsTrue(result);
+            var clientModifie = gestionClients.ObtenirClient(1);
+            Assert.AreEqual("Martin", clientModifie.Nom);
+        }
 
-            client1.AjouterAchat(100);
-            client2.AjouterAchat(300);
-            client3.AjouterAchat(200);
+        /// <summary>
+        /// Tests deleting a client.
+        /// </summary>
+        [TestMethod]
+        public void TestSupprimerClient()
+        {
+            gestionClients.AjouterClient(client);
+            var result = gestionClients.SupprimerClient(1);
+            Assert.IsTrue(result);
+            var clientSupprime = gestionClients.ObtenirClient(1);
+            Assert.IsNull(clientSupprime);
+        }
 
-            GestionClients.AjouterClient(client1);
-            GestionClients.AjouterClient(client2);
-            GestionClients.AjouterClient(client3);
-
-            // Test tri alphabétique
-            var clientsAlpha = GestionClients.ObtenirClientsParOrdreAlphabetique();
-            if (clientsAlpha[0].Nom != "Albert") throw new Exception("Le tri alphabétique n'est pas correct");
-
-            // Test tri par station
-            var clientsStation = GestionClients.ObtenirClientsParStation();
-            if (clientsStation[0].Station != TestUtils.StationTest) throw new Exception("Le tri par station n'est pas correct");
-
-            // Test tri par montant
-            var clientsMontant = GestionClients.ObtenirClientsParMontantAchats();
-            if (clientsMontant[0].MontantAchats != 300) throw new Exception("Le tri par montant n'est pas correct");
+        /// <summary>
+        /// Tests retrieving all clients.
+        /// </summary>
+        [TestMethod]
+        public void TestObtenirTousLesClients()
+        {
+            gestionClients.AjouterClient(client);
+            var clients = gestionClients.ObtenirTousLesClients();
+            Assert.IsNotNull(clients);
+            Assert.AreEqual(1, clients.Count);
         }
     }
 } 

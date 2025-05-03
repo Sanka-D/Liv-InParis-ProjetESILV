@@ -3,17 +3,24 @@ using System.Collections.Generic;
 
 namespace LivinParis.Models.Trajets
 {
+    /// <summary>
+    /// Represents a metro station in the network.
+    /// </summary>
     public class Station
     {
         public int Id { get; set; }
         public string Nom { get; set; }
         public string Adresse { get; set; }
+        public string Ligne { get; set; }
         public double Latitude { get; set; }
         public double Longitude { get; set; }
         public Station Precedente { get; set; }
         public double Distance { get; set; }
         public List<Connexion> Connexions { get; set; }
 
+        /// <summary>
+        /// Initializes a new instance of the Station class.
+        /// </summary>
         public Station(int id, string nom, string adresse, double latitude, double longitude)
         {
             Id = id;
@@ -24,10 +31,12 @@ namespace LivinParis.Models.Trajets
             Connexions = new List<Connexion>();
         }
 
+        /// <summary>
+        /// Calculates the distance between this station and another using the Haversine formula.
+        /// </summary>
         public double CalculerDistance(Station autre)
         {
-            /// Formule de Haversine
-            const double R = 6371; /// Rayon de la Terre en km
+            const double R = 6371; /// Earth's radius in km
             var lat1 = Latitude * Math.PI / 180;
             var lat2 = autre.Latitude * Math.PI / 180;
             var deltaLat = (autre.Latitude - Latitude) * Math.PI / 180;

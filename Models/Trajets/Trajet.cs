@@ -1,9 +1,36 @@
 using System;
+using System.Collections.Generic;
 
 namespace LivinParis.Models.Trajets
 {
+    /// <summary>
+    /// Represents a journey in the metro network.
+    /// </summary>
     public class Trajet
     {
+        /// <summary>
+        /// Gets or sets the list of stations in the journey.
+        /// </summary>
+        public List<Station> Stations { get; set; }
+
+        /// <summary>
+        /// Gets or sets the total distance of the journey in kilometers.
+        /// </summary>
+        public double Distance { get; set; }
+
+        /// <summary>
+        /// Gets or sets the estimated duration of the journey in minutes.
+        /// </summary>
+        public double Duree { get; set; }
+
+        /// <summary>
+        /// Initializes a new instance of the Trajet class.
+        /// </summary>
+        public Trajet()
+        {
+            Stations = new List<Station>();
+        }
+
         public int Id { get; set; }
         public int CommandeId { get; set; }
         public string AdresseDepart { get; set; }

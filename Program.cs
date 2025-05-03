@@ -6,13 +6,30 @@ using System.Linq;
 using System.Collections.Generic;
 using LivinParis.Models.Trajets;
 using System.IO;
+using SDColor = System.Drawing.Color;
+using SDPointF = System.Drawing.PointF;
+using SDRectangleF = System.Drawing.RectangleF;
+using ImgColor = SixLabors.ImageSharp.Color;
+using ImgPointF = SixLabors.ImageSharp.PointF;
+using ImgRectangleF = SixLabors.ImageSharp.RectangleF;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Drawing.Processing;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.Fonts;
 
 namespace LivinParis
 {
+    /// <summary>
+    /// Main program class for the Liv-In Paris application.
+    /// </summary>
     class Program
     {
         private static DatabaseManager _dbManager;
 
+        /// <summary>
+        /// Main entry point of the application.
+        /// </summary>
         static void Main(string[] args)
         {
             try
@@ -76,6 +93,9 @@ namespace LivinParis
             }
         }
 
+        /// <summary>
+        /// Displays the database management menu.
+        /// </summary>
         static void ViewDatabase()
         {
             Console.WriteLine("\n=== Visualisation de la base de données ===");
@@ -105,6 +125,9 @@ namespace LivinParis
             }
         }
 
+        /// <summary>
+        /// Displays the list of cooks.
+        /// </summary>
         static void DisplayCuisiniers()
         {
             Console.WriteLine("\n=== Liste des cuisiniers ===");
@@ -123,6 +146,9 @@ namespace LivinParis
             }
         }
 
+        /// <summary>
+        /// Displays the list of clients.
+        /// </summary>
         static void DisplayClients()
         {
             Console.WriteLine("\n=== Liste des clients ===");
@@ -141,6 +167,9 @@ namespace LivinParis
             }
         }
 
+        /// <summary>
+        /// Displays the list of dishes.
+        /// </summary>
         static void DisplayPlats()
         {
             Console.WriteLine("\n=== Liste des plats ===");
@@ -159,6 +188,9 @@ namespace LivinParis
             }
         }
 
+        /// <summary>
+        /// Handles user login.
+        /// </summary>
         static void Login()
         {
             Console.WriteLine("\n=== Connexion ===");
@@ -200,6 +232,9 @@ namespace LivinParis
             }
         }
 
+        /// <summary>
+        /// Calculates and displays the route to the restaurant.
+        /// </summary>
         static void CalculerTrajetVersRestaurant()
         {
             try
@@ -268,6 +303,9 @@ namespace LivinParis
             }
         }
 
+        /// <summary>
+        /// Handles order creation.
+        /// </summary>
         static void CreateOrder()
         {
             Console.WriteLine("\n=== Création d'une commande ===");
@@ -293,6 +331,9 @@ namespace LivinParis
             }
         }
 
+        /// <summary>
+        /// Handles account creation.
+        /// </summary>
         static void CreateAccount()
         {
             Console.WriteLine("\n=== Création de compte ===");
@@ -317,6 +358,9 @@ namespace LivinParis
             Console.WriteLine("Compte créé avec succès!");
         }
 
+        /// <summary>
+        /// Handles route management.
+        /// </summary>
         static void GestionTrajets()
         {
             try
@@ -331,7 +375,8 @@ namespace LivinParis
                     Console.WriteLine("1. Rechercher le plus court chemin");
                     Console.WriteLine("2. Visualiser le réseau");
                     Console.WriteLine("3. Comparer les algorithmes");
-                    Console.WriteLine("4. Retour au menu principal");
+                    Console.WriteLine("4. Coloration du graphe (Welsh-Powell), export et arborescence");
+                    Console.WriteLine("5. Retour au menu principal");
 
                     var choice = Console.ReadLine();
 
@@ -347,6 +392,9 @@ namespace LivinParis
                             ComparerAlgorithmes(reseauMetro);
                             break;
                         case "4":
+                            AnalyseColorationEtArborescence(reseauMetro);
+                            break;
+                        case "5":
                             return;
                         default:
                             Console.WriteLine("Option invalide");
@@ -360,6 +408,9 @@ namespace LivinParis
             }
         }
 
+        /// <summary>
+        /// Searches for the shortest path between two stations.
+        /// </summary>
         static void RechercherChemin(LivinParis.Models.Trajets.ReseauMetro reseau)
         {
             Console.WriteLine("\n=== Recherche de chemin ===");
@@ -449,6 +500,9 @@ namespace LivinParis
             Console.WriteLine($"Visualisation du trajet sauvegardée dans : {nomFichier}");
         }
 
+        /// <summary>
+        /// Displays the path graph.
+        /// </summary>
         static void AfficherGrapheChemin(List<LivinParis.Models.Trajets.Station> chemin)
         {
             if (chemin == null || chemin.Count < 2)
@@ -482,6 +536,9 @@ namespace LivinParis
             Console.WriteLine("\n=== Fin de la visualisation ===");
         }
 
+        /// <summary>
+        /// Visualizes the metro network.
+        /// </summary>
         static void VisualiserReseau(LivinParis.Models.Trajets.ReseauMetro reseau)
         {
             Console.WriteLine("\n=== Visualisation du réseau ===");
@@ -521,6 +578,9 @@ namespace LivinParis
             Console.WriteLine($"Visualisation du réseau sauvegardée dans : {nomFichier}");
         }
 
+        /// <summary>
+        /// Displays the network graph.
+        /// </summary>
         static void AfficherGrapheReseau(List<LivinParis.Models.Trajets.Station> stations, List<LivinParis.Models.Trajets.Ligne> connexions)
         {
             Console.WriteLine("=== Graphe du réseau ===");
@@ -572,6 +632,9 @@ namespace LivinParis
             Console.WriteLine("\n=== Fin du graphe ===");
         }
 
+        /// <summary>
+        /// Compares different path-finding algorithms.
+        /// </summary>
         static void ComparerAlgorithmes(LivinParis.Models.Trajets.ReseauMetro reseau)
         {
             Console.WriteLine("\n=== Comparaison des algorithmes ===");
@@ -671,6 +734,121 @@ namespace LivinParis
             string nomFichier = $"{dossierVisualisation}/trajet_{stationDepart.Nom}_vers_{stationArrivee.Nom}_{DateTime.Now:yyyyMMdd_HHmmss}.png";
             visualisation.SauvegarderImage(nomFichier);
             Console.WriteLine($"Visualisation du trajet sauvegardée dans : {nomFichier}");
+        }
+
+        /// <summary>
+        /// Analyzes graph coloring and arborescence.
+        /// </summary>
+        static void AnalyseColorationEtArborescence(LivinParis.Models.Trajets.ReseauMetro reseau)
+        {
+            Console.WriteLine("\n=== Analyse coloration (Welsh-Powell), export et arborescence (Chu-Liu/Edmonds) ===");
+            var graphe = reseau.Graphe;
+            
+            // 1. Welsh-Powell coloring
+            var coloring = GraphAlgorithms.WelshPowellColoring(reseau.Graphe);
+            int minColors = coloring.Values.Distinct().Count();
+            Console.WriteLine($"Nombre minimal de couleurs nécessaires : {minColors}");
+            
+            // 2. Bipartite check
+            bool bipartite = GraphAlgorithms.IsBipartite(coloring);
+            Console.WriteLine($"Le graphe est biparti ? {bipartite} (car {minColors} couleurs)");
+            
+            // 3. Planar check
+            bool planar = GraphAlgorithms.IsPlanar(reseau.Graphe);
+            Console.WriteLine($"Le graphe est planaire ? {planar} (m <= 3n-6)");
+            
+            // 4. Independent groups
+            var groups = GraphAlgorithms.GetIndependentGroups(coloring);
+            Console.WriteLine("Groupes indépendants (même couleur) :");
+            foreach (var kvp in groups)
+            {
+                Console.WriteLine($"  Couleur {kvp.Key} : {string.Join(", ", kvp.Value.Select(s => s.ToString()))}");
+            }
+            
+            // 5. Visualize colored graph
+            var visualisation = new VisualisationReseau(reseau);
+            string dossierVisualisation = "Visualisations";
+            if (!Directory.Exists(dossierVisualisation)) Directory.CreateDirectory(dossierVisualisation);
+            string nomFichier = $"{dossierVisualisation}/coloration_{DateTime.Now:yyyyMMdd_HHmmss}.png";
+            visualisation.DessinerColoration(coloring, nomFichier);
+            Console.WriteLine($"Graphe coloré sauvegardé dans : {nomFichier}");
+            
+            // 6. Export to JSON/XML
+            string jsonPath = $"{dossierVisualisation}/coloration_{DateTime.Now:yyyyMMdd_HHmmss}.json";
+            string xmlPath = $"{dossierVisualisation}/coloration_{DateTime.Now:yyyyMMdd_HHmmss}.xml";
+            GraphAlgorithms.ExportToJson(reseau.Graphe, coloring, jsonPath);
+            GraphAlgorithms.ExportToXml(reseau.Graphe, coloring, xmlPath);
+            Console.WriteLine($"Export JSON : {jsonPath}");
+            Console.WriteLine($"Export XML : {xmlPath}");
+            
+            // 7. Chu-Liu/Edmonds arborescence
+            Console.WriteLine("\n--- Arborescence minimale (Chu-Liu/Edmonds) ---");
+            // Build directed, weighted edges (use distance as weight)
+            var nodes = reseau.Stations.Values.ToList();
+            var edges = new List<(Station From, Station To, double Weight)>();
+            foreach (var noeud in reseau.Graphe.Noeuds.Values)
+            {
+                foreach (var voisin in noeud.Voisins)
+                {
+                    edges.Add((noeud.Valeur, voisin.Key.Valeur, voisin.Value)); // Directed
+                }
+            }
+            
+            // Select a root (first cook or station)
+            var root = nodes.FirstOrDefault();
+            if (root == null)
+            {
+                Console.WriteLine("Aucune station trouvée pour l'arborescence.");
+                return;
+            }
+            
+            var arborescence = GraphAlgorithms.ChuLiuEdmonds(nodes, edges, root);
+            Console.WriteLine($"Arborescence minimale à partir de {root.Nom} :");
+            foreach (var arc in arborescence)
+            {
+                Console.WriteLine($"{arc.From.Nom} -> {arc.To.Nom} (poids: {arc.Weight:F2})");
+            }
+            
+            // Visualisation de l'arborescence (optionnelle, simple)
+            string arboFile = $"{dossierVisualisation}/arborescence_{DateTime.Now:yyyyMMdd_HHmmss}.png";
+            VisualiserArborescence(reseau, arborescence, arboFile);
+            Console.WriteLine($"Arborescence visualisée dans : {arboFile}");
+        }
+
+        /// <summary>
+        /// Visualizes the arborescence.
+        /// </summary>
+        static void VisualiserArborescence(LivinParis.Models.Trajets.ReseauMetro reseau, List<(Station From, Station To, double Weight)> arbo, string chemin)
+        {
+            var visualisation = new VisualisationReseau(reseau);
+            using (var image = new Image<Rgba32>(1200, 800))
+            {
+                image.Mutate(x => x.Fill(ImgColor.White));
+                
+                // Dessiner les arêtes de l'arborescence
+                foreach (var arc in arbo)
+                {
+                    var point1 = new ImgPointF((float)arc.From.Longitude, (float)arc.From.Latitude);
+                    var point2 = new ImgPointF((float)arc.To.Longitude, (float)arc.To.Latitude);
+                    point1 = visualisation.GetType().GetMethod("ConvertirCoordonnees", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                        .Invoke(visualisation, new object[] { arc.From.Latitude, arc.From.Longitude }) is ImgPointF p1 ? p1 : point1;
+                    point2 = visualisation.GetType().GetMethod("ConvertirCoordonnees", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                        .Invoke(visualisation, new object[] { arc.To.Latitude, arc.To.Longitude }) is ImgPointF p2 ? p2 : point2;
+                    var pen = new SolidPen(ImgColor.DarkGreen, 4f);
+                    image.Mutate(x => x.DrawLine(pen, point1, point2));
+                }
+                
+                // Dessiner les sommets
+                foreach (var station in reseau.Stations.Values)
+                {
+                    var point = visualisation.GetType().GetMethod("ConvertirCoordonnees", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                        .Invoke(visualisation, new object[] { station.Latitude, station.Longitude }) is ImgPointF p ? p : new ImgPointF((float)station.Longitude, (float)station.Latitude);
+                    var rect = new ImgRectangleF(point.X - 4, point.Y - 4, 8, 8);
+                    image.Mutate(x => x.Fill(ImgColor.Blue, rect));
+                }
+                
+                image.Save(chemin);
+            }
         }
     }
 }
