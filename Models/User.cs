@@ -21,6 +21,11 @@ namespace LivinParis.Models
         public string Email { get; set; }
 
         /// <summary>
+        /// Gets or sets the user's password.
+        /// </summary>
+        public string Password { get; set; }
+
+        /// <summary>
         /// Gets or sets the user's role.
         /// </summary>
         public UserRole Role { get; set; }

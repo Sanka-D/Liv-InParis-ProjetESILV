@@ -1,5 +1,5 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using LivinParis.Models;
+using LivinParis.Models.Trajets;
 using System.Collections.Generic;
 
 namespace LivinParis.Tests
@@ -22,12 +22,13 @@ namespace LivinParis.Tests
         [TestInitialize]
         public void Initialize()
         {
-            station1 = new Station(1, "Gare du Nord", "Ligne 4", 48.8800, 2.3550);
-            station2 = new Station(2, "Châtelet", "Ligne 4", 48.8600, 2.3470);
-            station3 = new Station(3, "Nation", "Ligne 1", 48.8483, 2.3962);
-            station4 = new Station(4, "Bastille", "Ligne 1", 48.8531, 2.3692);
-
+            // Create a new instance instead of using the singleton for testing
             reseau = new ReseauMetro();
+            station1 = new Station(1, "Gare du Nord", "Ligne 4", 48.8800, 2.3550, true);
+            station2 = new Station(2, "Châtelet", "Ligne 4", 48.8600, 2.3470, true);
+            station3 = new Station(3, "Nation", "Ligne 1", 48.8483, 2.3962, true);
+            station4 = new Station(4, "Bastille", "Ligne 1", 48.8531, 2.3692, true);
+
             reseau.AjouterStation(station1);
             reseau.AjouterStation(station2);
             reseau.AjouterStation(station3);
@@ -41,7 +42,7 @@ namespace LivinParis.Tests
         public void TestRechercherStationParNom()
         {
             var station = reseau.RechercherStationParNom("Châtelet");
-            Assert.AreEqual(station2, station);
+            Assert.AreEqual(station2.Id, station.Id);
         }
 
         /// <summary>

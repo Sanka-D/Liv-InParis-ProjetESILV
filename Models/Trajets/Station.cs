@@ -31,6 +31,12 @@ namespace LivinParis.Models.Trajets
             Connexions = new List<Connexion>();
         }
 
+        public Station(int id, string nom, string ligne, double latitude, double longitude, bool isLigne)
+            : this(id, nom, "", latitude, longitude)
+        {
+            Ligne = ligne;
+        }
+
         /// <summary>
         /// Calculates the distance between this station and another using the Haversine formula.
         /// </summary>
@@ -52,7 +58,7 @@ namespace LivinParis.Models.Trajets
 
         public override string ToString()
         {
-            return $"{Nom} ({Adresse})";
+            return $"{Nom} ({(string.IsNullOrEmpty(Adresse) ? Ligne : Adresse)})";
         }
     }
 } 

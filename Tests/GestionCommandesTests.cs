@@ -13,7 +13,7 @@ namespace LivinParis.Tests
     [TestClass]
     public class GestionCommandesTests
     {
-        private GestionCommandes gestionCommandes;
+        private IGestionCommandes gestionCommandes;
         private Commande commande;
         private Client client;
         private Plat plat;
@@ -24,7 +24,7 @@ namespace LivinParis.Tests
         [TestInitialize]
         public void Initialize()
         {
-            gestionCommandes = new GestionCommandes();
+            gestionCommandes = GestionCommandes.Instance;
             client = new Client
             {
                 Id = 1,
@@ -108,6 +108,7 @@ namespace LivinParis.Tests
             Assert.AreEqual(1, commandes.Count);
         }
 
+        [TestMethod]
         public void Test_Creation_Commande()
         {
             // Arrange
@@ -116,69 +117,67 @@ namespace LivinParis.Tests
             var date = DateTime.Now;
 
             // Act
-            var commande = GestionCommandes.CreerCommande(client, cuisinier, date);
+            var commande = gestionCommandes.CreerCommande(client, cuisinier, date);
 
             // Assert
-            if (commande.Client != client) throw new Exception("Le client n'est pas correct");
-            if (commande.Cuisinier != cuisinier) throw new Exception("Le cuisinier n'est pas correct");
-            if (commande.Date != date) throw new Exception("La date n'est pas correcte");
+            Assert.AreEqual(client.Id, commande.ClientId, "Le client n'est pas correct");
+            Assert.AreEqual(cuisinier.Id, commande.CuisinierId, "Le cuisinier n'est pas correct");
+            Assert.AreEqual(date.Date, commande.DateCommande.Date, "La date n'est pas correcte");
         }
 
+        [TestMethod]
         public void Test_Modification_Commande()
         {
             // Arrange
             var client = new Client("Dupont", "Jean", TestUtils.StationTest, "0123456789", "jean@email.com");
             var cuisinier = new Cuisinier("Martin", "Sophie", TestUtils.StationTest, "9876543210", "sophie@cuisine.com");
             var date = DateTime.Now;
-            var commande = GestionCommandes.CreerCommande(client, cuisinier, date);
+            var commande = gestionCommandes.CreerCommande(client, cuisinier, date);
 
             var nouveauCuisinier = new Cuisinier("Petit", "Pierre", TestUtils.StationTest, "1122334455", "pierre@cuisine.com");
 
             // Act
-            GestionCommandes.AssignerCuisinier(commande.Identifiant, nouveauCuisinier.Identifiant);
+            gestionCommandes.AssignerCuisinier(commande.Id, nouveauCuisinier.Id);
 
             // Assert
-            var commandeModifiee = GestionCommandes.ObtenirCommande(commande.Identifiant);
-            if (commandeModifiee.Cuisinier != nouveauCuisinier) throw new Exception("Le cuisinier n'a pas été modifié");
+            var commandeModifiee = gestionCommandes.ObtenirCommande(commande.Id);
+            Assert.AreEqual(nouveauCuisinier.Id, commandeModifiee.CuisinierId, "Le cuisinier n'a pas été modifié");
         }
 
+        [TestMethod]
         public void Test_Suppression_Commande()
         {
             // Arrange
             var client = new Client("Dupont", "Jean", TestUtils.StationTest, "0123456789", "jean@email.com");
             var cuisinier = new Cuisinier("Martin", "Sophie", TestUtils.StationTest, "9876543210", "sophie@cuisine.com");
             var date = DateTime.Now;
-            var commande = GestionCommandes.CreerCommande(client, cuisinier, date);
+            var commande = gestionCommandes.CreerCommande(client, cuisinier, date);
 
             // Act
-            GestionCommandes.SupprimerCommande(commande.Identifiant);
+            gestionCommandes.SupprimerCommande(commande.Id);
 
             // Assert
-            try
-            {
-                GestionCommandes.ObtenirCommande(commande.Identifiant);
-                throw new Exception("La commande aurait dû être supprimée");
-            }
-            catch (Exception) { /* OK */ }
+            Assert.ThrowsException<Exception>(() => gestionCommandes.ObtenirCommande(commande.Id));
         }
 
+        [TestMethod]
         public void Test_Simulation_Commande()
         {
             // Arrange
             var client = new Client("Dupont", "Jean", TestUtils.StationTest, "0123456789", "jean@email.com");
             var cuisinier = new Cuisinier("Martin", "Sophie", TestUtils.StationTest, "9876543210", "sophie@cuisine.com");
             var date = DateTime.Now;
-            var commande = GestionCommandes.CreerCommande(client, cuisinier, date);
+            var commande = gestionCommandes.CreerCommande(client, cuisinier, date);
 
             // Act
-            GestionCommandes.AssignerCuisinier(commande.Identifiant, cuisinier.Identifiant);
-            GestionCommandes.DemarrerPreparation(commande.Identifiant);
-            GestionCommandes.DemarrerLivraison(commande.Identifiant);
-            GestionCommandes.TerminerCommande(commande.Identifiant);
+            gestionCommandes.AssignerCuisinier(commande.Id, cuisinier.Id);
+            gestionCommandes.DemarrerPreparation(commande.Id);
+            gestionCommandes.DemarrerLivraison(commande.Id);
+            gestionCommandes.TerminerCommande(commande.Id);
 
             // Assert
-            var commandeFinale = GestionCommandes.ObtenirCommande(commande.Identifiant);
-            if (commandeFinale.Statut != StatutCommande.Terminee) throw new Exception("La commande n'est pas terminée");
+            var commandeFinale = gestionCommandes.ObtenirCommande(commande.Id);
+            Assert.AreEqual(StatutCommande.Terminee, commandeFinale.Statut, "La commande n'est pas terminée");
         }
     }
 } 
