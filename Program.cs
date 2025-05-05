@@ -17,6 +17,8 @@ using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.Fonts;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace LivinParis
 {
@@ -26,6 +28,7 @@ namespace LivinParis
     class Program
     {
         private static DatabaseManager _dbManager;
+        private static User _currentUser;
 
         /// <summary>
         /// Main entry point of the application.
@@ -35,15 +38,13 @@ namespace LivinParis
             try
             {
                 Console.WriteLine("Tentative de connexion à la base de données...");
-                Console.WriteLine("Serveur: 127.0.0.1:3307");
+                Console.WriteLine("Serveur: 127.0.0.1:3306");
                 Console.WriteLine("Base de données: livinparis");
                 Console.WriteLine("Utilisateur: root");
 
-                /// Configuration de la connexion à la base de données
-                _dbManager = new DatabaseManager("127.0.0.1", "livinparis", "root", "270115");
+                using (_dbManager = new DatabaseManager("127.0.0.1", "livinparis", "root", "270115"))
+                {
                 _dbManager.Connect();
-
-                /// TODO: Implémenter la vérification des identifiants
                 Console.WriteLine("Connexion réussie!");
 
                 while (true)
@@ -66,10 +67,24 @@ namespace LivinParis
                             CreateAccount();
                             break;
                         case "3":
+                                if (_currentUser != null)
+                                {
                             ViewDatabase();
+                                }
+                                else
+                                {
+                                    Console.WriteLine("Vous devez être connecté pour accéder à cette fonctionnalité.");
+                                }
                             break;
                         case "4":
+                                if (_currentUser != null)
+                                {
                             GestionTrajets();
+                                }
+                                else
+                                {
+                                    Console.WriteLine("Vous devez être connecté pour accéder à cette fonctionnalité.");
+                                }
                             break;
                         case "5":
                             _dbManager.Disconnect();
@@ -78,6 +93,7 @@ namespace LivinParis
                         default:
                             Console.WriteLine("Option invalide");
                             break;
+                        }
                     }
                 }
             }
@@ -85,7 +101,7 @@ namespace LivinParis
             {
                 Console.WriteLine($"\nErreur détaillée: {ex.Message}");
                 Console.WriteLine("\nVeuillez vérifier que:");
-                Console.WriteLine("1. MySQL est en cours d'exécution sur le port 3307");
+                Console.WriteLine("1. MySQL est en cours d'exécution sur le port 3306");
                 Console.WriteLine("2. La base de données 'livinparis' existe");
                 Console.WriteLine("3. Les identifiants sont corrects (root/root)");
                 Console.WriteLine("\nAppuyez sur une touche pour quitter...");
@@ -94,7 +110,157 @@ namespace LivinParis
         }
 
         /// <summary>
-        /// Displays the database management menu.
+        /// Handles user login with proper password hashing.
+        /// </summary>
+        static void Login()
+        {
+            Console.WriteLine("\n=== Connexion ===");
+            Console.Write("Nom d'utilisateur: ");
+            var username = Console.ReadLine();
+            Console.Write("Mot de passe: ");
+            var password = Console.ReadLine();
+
+            var hashedPassword = HashPassword(password);
+            var query = "SELECT * FROM users WHERE username = @username AND password = @password";
+            var parameters = new Dictionary<string, object>
+            {
+                { "@username", username },
+                { "@password", hashedPassword }
+            };
+
+            MySqlDataReader reader = null;
+            try
+            {
+                reader = _dbManager.ExecuteReader(query, parameters);
+                if (reader.Read())
+                {
+                    _currentUser = new User
+                    {
+                        Id = Convert.ToInt32(reader["id"]),
+                        Username = reader["username"].ToString(),
+                        Role = (UserRole)Enum.Parse(typeof(UserRole), reader["role"].ToString()),
+                        Email = reader["email"].ToString()
+                    };
+
+                    Console.WriteLine($"Connexion réussie! Bienvenue {_currentUser.Username} ({_currentUser.Role})");
+                    ShowUserMenu();
+                }
+                else
+                {
+                    Console.WriteLine("Nom d'utilisateur ou mot de passe incorrect.");
+                }
+            }
+            finally
+            {
+                if (reader != null)
+                {
+                    reader.Close();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Shows the appropriate menu based on user role.
+        /// </summary>
+        static void ShowUserMenu()
+        {
+            while (true)
+            {
+                Console.WriteLine("\n=== Menu Utilisateur ===");
+                Console.WriteLine("1. Visualiser les plats");
+                Console.WriteLine("2. Créer une commande");
+                Console.WriteLine("3. Calculer un trajet vers le restaurant");
+
+                if (_currentUser.Role == UserRole.Admin || _currentUser.Role == UserRole.Manager)
+                {
+                    Console.WriteLine("4. Gérer les cuisiniers");
+                    Console.WriteLine("5. Gérer les clients");
+                    Console.WriteLine("6. Gérer les plats");
+                }
+
+                Console.WriteLine("7. Déconnexion");
+
+                var choice = Console.ReadLine();
+
+                switch (choice)
+                {
+                    case "1":
+                        DisplayPlats();
+                        break;
+                    case "2":
+                        CreateOrder();
+                        break;
+                    case "3":
+                        CalculerTrajetVersRestaurant();
+                        break;
+                    case "4":
+                        if (_currentUser.Role == UserRole.Admin || _currentUser.Role == UserRole.Manager)
+                            ManageCuisiniers();
+                        break;
+                    case "5":
+                        if (_currentUser.Role == UserRole.Admin || _currentUser.Role == UserRole.Manager)
+                            ManageClients();
+                        break;
+                    case "6":
+                        if (_currentUser.Role == UserRole.Admin || _currentUser.Role == UserRole.Manager)
+                            ManagePlats();
+                        break;
+                    case "7":
+                        _currentUser = null;
+                        return;
+                    default:
+                        Console.WriteLine("Option invalide");
+                        break;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Creates a new user account with proper validation.
+        /// </summary>
+        static void CreateAccount()
+        {
+            Console.WriteLine("\n=== Création de compte ===");
+            Console.Write("Nom d'utilisateur: ");
+            var username = Console.ReadLine();
+            Console.Write("Mot de passe: ");
+            var password = Console.ReadLine();
+            Console.Write("Email: ");
+            var email = Console.ReadLine();
+            Console.Write("Rôle (1: Admin, 2: Manager, 3: User): ");
+            var roleChoice = Console.ReadLine();
+
+            UserRole role = roleChoice switch
+            {
+                "1" => UserRole.Admin,
+                "2" => UserRole.Manager,
+                "3" => UserRole.User,
+                _ => UserRole.User
+            };
+
+            var hashedPassword = HashPassword(password);
+            var query = "INSERT INTO users (username, password, role, email) VALUES (@username, @password, @role, @email)";
+            var parameters = new Dictionary<string, object>
+            {
+                { "@username", username },
+                { "@password", hashedPassword },
+                { "@role", role.ToString() },
+                { "@email", email }
+            };
+
+            try
+            {
+                _dbManager.ExecuteNonQuery(query, parameters);
+                Console.WriteLine("Compte créé avec succès!");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erreur lors de la création du compte: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Displays the database management menu with proper permissions.
         /// </summary>
         static void ViewDatabase()
         {
@@ -126,13 +292,16 @@ namespace LivinParis
         }
 
         /// <summary>
-        /// Displays the list of cooks.
+        /// Displays the list of cooks with proper formatting.
         /// </summary>
         static void DisplayCuisiniers()
         {
             Console.WriteLine("\n=== Liste des cuisiniers ===");
-            using (var reader = _dbManager.ExecuteReader("SELECT * FROM cuisiniers"))
+            var query = "SELECT * FROM cuisiniers ORDER BY nom, prenom";
+            MySqlDataReader reader = null;
+            try
             {
+                reader = _dbManager.ExecuteReader(query);
                 while (reader.Read())
                 {
                     Console.WriteLine($"ID: {reader["id"]}");
@@ -144,16 +313,26 @@ namespace LivinParis
                     Console.WriteLine("-------------------");
                 }
             }
+            finally
+            {
+                if (reader != null)
+                {
+                    reader.Close();
+                }
+            }
         }
 
         /// <summary>
-        /// Displays the list of clients.
+        /// Displays the list of clients with proper formatting.
         /// </summary>
         static void DisplayClients()
         {
             Console.WriteLine("\n=== Liste des clients ===");
-            using (var reader = _dbManager.ExecuteReader("SELECT * FROM clients"))
+            var query = "SELECT * FROM clients ORDER BY nom, prenom";
+            MySqlDataReader reader = null;
+            try
             {
+                reader = _dbManager.ExecuteReader(query);
                 while (reader.Read())
                 {
                     Console.WriteLine($"ID: {reader["id"]}");
@@ -165,16 +344,29 @@ namespace LivinParis
                     Console.WriteLine("-------------------");
                 }
             }
+            finally
+            {
+                if (reader != null)
+                {
+                    reader.Close();
+                }
+            }
         }
 
         /// <summary>
-        /// Displays the list of dishes.
+        /// Displays the list of dishes with proper formatting.
         /// </summary>
         static void DisplayPlats()
         {
             Console.WriteLine("\n=== Liste des plats ===");
-            using (var reader = _dbManager.ExecuteReader("SELECT p.*, c.nom as cuisinier_nom, c.prenom as cuisinier_prenom FROM plats p JOIN cuisiniers c ON p.cuisinier_id = c.id"))
+            var query = @"SELECT p.*, c.nom as cuisinier_nom, c.prenom as cuisinier_prenom 
+                         FROM plats p 
+                         JOIN cuisiniers c ON p.cuisinier_id = c.id 
+                         ORDER BY p.type, p.nom";
+            MySqlDataReader reader = null;
+            try
             {
+                reader = _dbManager.ExecuteReader(query);
                 while (reader.Read())
                 {
                     Console.WriteLine($"ID: {reader["id"]}");
@@ -186,44 +378,46 @@ namespace LivinParis
                     Console.WriteLine("-------------------");
                 }
             }
+            finally
+            {
+                if (reader != null)
+                {
+                    reader.Close();
+                }
+            }
         }
 
         /// <summary>
-        /// Handles user login.
+        /// Manages cooks (Admin/Manager only).
         /// </summary>
-        static void Login()
+        static void ManageCuisiniers()
         {
-            Console.WriteLine("\n=== Connexion ===");
-            Console.Write("Nom d'utilisateur: ");
-            var username = Console.ReadLine();
-            Console.Write("Mot de passe: ");
-            var password = Console.ReadLine();
-
-            /// TODO: Implémenter la vérification des identifiants
-            Console.WriteLine("Connexion réussie!");
-            
             while (true)
             {
-                Console.WriteLine("\n=== Menu Utilisateur ===");
-                Console.WriteLine("1. Visualiser les plats");
-                Console.WriteLine("2. Créer une commande");
-                Console.WriteLine("3. Calculer un trajet vers le restaurant");
-                Console.WriteLine("4. Déconnexion");
+                Console.WriteLine("\n=== Gestion des Cuisiniers ===");
+                Console.WriteLine("1. Afficher les cuisiniers");
+                Console.WriteLine("2. Ajouter un cuisinier");
+                Console.WriteLine("3. Modifier un cuisinier");
+                Console.WriteLine("4. Supprimer un cuisinier");
+                Console.WriteLine("5. Retour");
 
                 var choice = Console.ReadLine();
 
                 switch (choice)
                 {
                     case "1":
-                        DisplayPlats();
+                        DisplayCuisiniers();
                         break;
                     case "2":
-                        CreateOrder();
+                        AddCuisinier();
                         break;
                     case "3":
-                        CalculerTrajetVersRestaurant();
+                        UpdateCuisinier();
                         break;
                     case "4":
+                        DeleteCuisinier();
+                        break;
+                    case "5":
                         return;
                     default:
                         Console.WriteLine("Option invalide");
@@ -233,78 +427,491 @@ namespace LivinParis
         }
 
         /// <summary>
-        /// Calculates and displays the route to the restaurant.
+        /// Adds a new cook to the database.
         /// </summary>
-        static void CalculerTrajetVersRestaurant()
-        {
+        static void AddCuisinier()
+            {
+            Console.WriteLine("\n=== Ajouter un cuisinier ===");
+            Console.Write("Nom: ");
+            var nom = Console.ReadLine();
+            Console.Write("Prénom: ");
+            var prenom = Console.ReadLine();
+            Console.Write("Spécialité: ");
+            var specialite = Console.ReadLine();
+            Console.Write("Expérience (années): ");
+            var experience = int.Parse(Console.ReadLine());
+            Console.Write("Email: ");
+            var email = Console.ReadLine();
+            Console.Write("Téléphone: ");
+            var telephone = Console.ReadLine();
+
+            var query = @"INSERT INTO cuisiniers (nom, prenom, specialite, experience, email, telephone) 
+                         VALUES (@nom, @prenom, @specialite, @experience, @email, @telephone)";
+            var parameters = new Dictionary<string, object>
+            {
+                { "@nom", nom },
+                { "@prenom", prenom },
+                { "@specialite", specialite },
+                { "@experience", experience },
+                { "@email", email },
+                { "@telephone", telephone }
+            };
+
             try
             {
-                Console.WriteLine("\n=== Calculer un trajet vers le restaurant ===");
-                var reseauMetro = LivinParis.Models.Trajets.ChargementXML.ChargerReseau("/home/sanka/Liv-InParis-ProjetESILV/Data/metro.xml");
-                
-                Console.WriteLine("Stations disponibles:");
-                foreach (var station in reseauMetro.Stations.Values)
-                {
-                    Console.WriteLine($"- {station.Nom}");
-                }
-
-                Console.Write("\nVotre station de départ: ");
-                var depart = Console.ReadLine();
-                Console.WriteLine("Le restaurant se trouve à Châtelet.");
-                
-                var stationDepart = reseauMetro.RechercherStationParNom(depart);
-                var stationArrivee = reseauMetro.RechercherStationParNom("Châtelet");
-
-                if (stationDepart == null)
-                {
-                    Console.WriteLine("Station de départ non trouvée.");
-                    return;
-                }
-
-                var chemin = reseauMetro.Graphe.Dijkstra(stationDepart, stationArrivee);
-                
-                if (chemin == null || chemin.Count == 0)
-                {
-                    Console.WriteLine("Aucun chemin trouvé vers le restaurant.");
-                    return;
-                }
-
-                Console.WriteLine("\nChemin vers le restaurant:");
-                foreach (var station in chemin)
-                {
-                    Console.WriteLine($"- {station.Nom}");
-                }
-                Console.WriteLine($"Distance totale: {reseauMetro.Graphe.CalculerDistanceTotale(chemin):F2} km");
-                Console.WriteLine($"Temps estimé: {(reseauMetro.Graphe.CalculerDistanceTotale(chemin) / 0.5):F0} minutes");
-                
-                // Afficher le graphe du chemin
-                AfficherGrapheChemin(chemin);
-                
-                /// Générer une visualisation graphique du trajet
-                Console.WriteLine("\nGénération d'une visualisation graphique du trajet vers le restaurant...");
-                var visualisation = new VisualisationReseau(reseauMetro);
-                visualisation.DessinerTrajet(chemin);
-                
-                /// Créer un dossier pour les visualisations si nécessaire
-                string dossierVisualisation = "Visualisations";
-                if (!Directory.Exists(dossierVisualisation))
-                {
-                    Directory.CreateDirectory(dossierVisualisation);
-                }
-                
-                /// Nom du fichier avec date et heure
-                string nomFichier = $"{dossierVisualisation}/trajet_vers_restaurant_{stationDepart.Nom}_{DateTime.Now:yyyyMMdd_HHmmss}.png";
-                visualisation.SauvegarderImage(nomFichier);
-                Console.WriteLine($"Visualisation du trajet sauvegardée dans : {nomFichier}");
+                _dbManager.ExecuteNonQuery(query, parameters);
+                Console.WriteLine("Cuisinier ajouté avec succès!");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors du calcul du trajet: {ex.Message}");
+                Console.WriteLine($"Erreur lors de l'ajout du cuisinier: {ex.Message}");
             }
         }
 
         /// <summary>
-        /// Handles order creation.
+        /// Updates an existing cook's information.
+        /// </summary>
+        static void UpdateCuisinier()
+        {
+            Console.WriteLine("\n=== Modifier un cuisinier ===");
+            Console.Write("ID du cuisinier à modifier: ");
+            if (!int.TryParse(Console.ReadLine(), out int id))
+                {
+                Console.WriteLine("ID invalide");
+                return;
+            }
+
+            Console.Write("Nouveau nom (laissez vide pour ne pas modifier): ");
+            var nom = Console.ReadLine();
+            Console.Write("Nouveau prénom (laissez vide pour ne pas modifier): ");
+            var prenom = Console.ReadLine();
+            Console.Write("Nouvelle spécialité (laissez vide pour ne pas modifier): ");
+            var specialite = Console.ReadLine();
+            Console.Write("Nouvelle expérience (années, laissez vide pour ne pas modifier): ");
+            var experienceStr = Console.ReadLine();
+            Console.Write("Nouvel email (laissez vide pour ne pas modifier): ");
+            var email = Console.ReadLine();
+            Console.Write("Nouveau téléphone (laissez vide pour ne pas modifier): ");
+            var telephone = Console.ReadLine();
+                
+            var updates = new List<string>();
+            var parameters = new Dictionary<string, object>();
+
+            if (!string.IsNullOrEmpty(nom))
+            {
+                updates.Add("nom = @nom");
+                parameters.Add("@nom", nom);
+            }
+            if (!string.IsNullOrEmpty(prenom))
+            {
+                updates.Add("prenom = @prenom");
+                parameters.Add("@prenom", prenom);
+            }
+            if (!string.IsNullOrEmpty(specialite))
+            {
+                updates.Add("specialite = @specialite");
+                parameters.Add("@specialite", specialite);
+            }
+            if (!string.IsNullOrEmpty(experienceStr) && int.TryParse(experienceStr, out int experience))
+            {
+                updates.Add("experience = @experience");
+                parameters.Add("@experience", experience);
+            }
+            if (!string.IsNullOrEmpty(email))
+            {
+                updates.Add("email = @email");
+                parameters.Add("@email", email);
+            }
+            if (!string.IsNullOrEmpty(telephone))
+            {
+                updates.Add("telephone = @telephone");
+                parameters.Add("@telephone", telephone);
+            }
+
+            if (updates.Count == 0)
+                {
+                Console.WriteLine("Aucune modification effectuée.");
+                    return;
+                }
+
+            parameters.Add("@id", id);
+            var query = $"UPDATE cuisiniers SET {string.Join(", ", updates)} WHERE id = @id";
+
+            try
+            {
+                _dbManager.ExecuteNonQuery(query, parameters);
+                Console.WriteLine("Cuisinier modifié avec succès!");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erreur lors de la modification du cuisinier: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Deletes a cook from the database.
+        /// </summary>
+        static void DeleteCuisinier()
+                {
+            Console.WriteLine("\n=== Supprimer un cuisinier ===");
+            Console.Write("ID du cuisinier à supprimer: ");
+            if (!int.TryParse(Console.ReadLine(), out int id))
+            {
+                Console.WriteLine("ID invalide");
+                    return;
+                }
+
+            var query = "DELETE FROM cuisiniers WHERE id = @id";
+            var parameters = new Dictionary<string, object>
+            {
+                { "@id", id }
+            };
+
+            try
+            {
+                _dbManager.ExecuteNonQuery(query, parameters);
+                Console.WriteLine("Cuisinier supprimé avec succès!");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erreur lors de la suppression du cuisinier: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Manages clients (Admin/Manager only).
+        /// </summary>
+        static void ManageClients()
+        {
+            while (true)
+                {
+                Console.WriteLine("\n=== Gestion des Clients ===");
+                Console.WriteLine("1. Afficher les clients");
+                Console.WriteLine("2. Ajouter un client");
+                Console.WriteLine("3. Modifier un client");
+                Console.WriteLine("4. Supprimer un client");
+                Console.WriteLine("5. Retour");
+
+                var choice = Console.ReadLine();
+
+                switch (choice)
+                {
+                    case "1":
+                        DisplayClients();
+                        break;
+                    case "2":
+                        AddClient();
+                        break;
+                    case "3":
+                        UpdateClient();
+                        break;
+                    case "4":
+                        DeleteClient();
+                        break;
+                    case "5":
+                        return;
+                    default:
+                        Console.WriteLine("Option invalide");
+                        break;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Adds a new client to the database.
+        /// </summary>
+        static void AddClient()
+        {
+            Console.WriteLine("\n=== Ajouter un client ===");
+            Console.Write("Nom: ");
+            var nom = Console.ReadLine();
+            Console.Write("Prénom: ");
+            var prenom = Console.ReadLine();
+            Console.Write("Adresse: ");
+            var adresse = Console.ReadLine();
+            Console.Write("Email: ");
+            var email = Console.ReadLine();
+            Console.Write("Téléphone: ");
+            var telephone = Console.ReadLine();
+            Console.Write("Préférences: ");
+            var preferences = Console.ReadLine();
+
+            var query = $"INSERT INTO clients (nom, prenom, adresse, email, telephone, preferences) VALUES ('{nom}', '{prenom}', '{adresse}', '{email}', '{telephone}', '{preferences}')";
+
+            try
+            {
+                _dbManager.ExecuteNonQuery(query);
+                Console.WriteLine("Client ajouté avec succès!");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erreur lors de l'ajout du client: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Updates an existing client's information.
+        /// </summary>
+        static void UpdateClient()
+        {
+            Console.WriteLine("\n=== Modifier un client ===");
+            Console.Write("ID du client à modifier: ");
+            if (!int.TryParse(Console.ReadLine(), out int id))
+            {
+                Console.WriteLine("ID invalide");
+                return;
+            }
+
+            Console.Write("Nouveau nom (laissez vide pour ne pas modifier): ");
+            var nom = Console.ReadLine();
+            Console.Write("Nouveau prénom (laissez vide pour ne pas modifier): ");
+            var prenom = Console.ReadLine();
+            Console.Write("Nouvelle adresse (laissez vide pour ne pas modifier): ");
+            var adresse = Console.ReadLine();
+            Console.Write("Nouvel email (laissez vide pour ne pas modifier): ");
+            var email = Console.ReadLine();
+            Console.Write("Nouveau téléphone (laissez vide pour ne pas modifier): ");
+            var telephone = Console.ReadLine();
+            Console.Write("Nouvelles préférences (laissez vide pour ne pas modifier): ");
+            var preferences = Console.ReadLine();
+
+            var updates = new List<string>();
+
+            if (!string.IsNullOrEmpty(nom))
+                updates.Add($"nom = '{nom}'");
+            if (!string.IsNullOrEmpty(prenom))
+                updates.Add($"prenom = '{prenom}'");
+            if (!string.IsNullOrEmpty(adresse))
+                updates.Add($"adresse = '{adresse}'");
+            if (!string.IsNullOrEmpty(email))
+                updates.Add($"email = '{email}'");
+            if (!string.IsNullOrEmpty(telephone))
+                updates.Add($"telephone = '{telephone}'");
+            if (!string.IsNullOrEmpty(preferences))
+                updates.Add($"preferences = '{preferences}'");
+
+            if (updates.Count == 0)
+            {
+                Console.WriteLine("Aucune modification effectuée.");
+                return;
+            }
+
+            var query = $"UPDATE clients SET {string.Join(", ", updates)} WHERE id = {id}";
+
+            try
+            {
+                _dbManager.ExecuteNonQuery(query);
+                Console.WriteLine("Client modifié avec succès!");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erreur lors de la modification du client: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Deletes a client from the database.
+        /// </summary>
+        static void DeleteClient()
+        {
+            Console.WriteLine("\n=== Supprimer un client ===");
+            Console.Write("ID du client à supprimer: ");
+            if (!int.TryParse(Console.ReadLine(), out int id))
+            {
+                Console.WriteLine("ID invalide");
+                return;
+            }
+
+            var query = $"DELETE FROM clients WHERE id = {id}";
+
+            try
+            {
+                _dbManager.ExecuteNonQuery(query);
+                Console.WriteLine("Client supprimé avec succès!");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erreur lors de la suppression du client: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Manages dishes (Admin/Manager only).
+        /// </summary>
+        static void ManagePlats()
+        {
+            while (true)
+            {
+                Console.WriteLine("\n=== Gestion des Plats ===");
+                Console.WriteLine("1. Afficher les plats");
+                Console.WriteLine("2. Ajouter un plat");
+                Console.WriteLine("3. Modifier un plat");
+                Console.WriteLine("4. Supprimer un plat");
+                Console.WriteLine("5. Retour");
+
+                var choice = Console.ReadLine();
+
+                switch (choice)
+                {
+                    case "1":
+            DisplayPlats();
+                        break;
+                    case "2":
+                        AddPlat();
+                        break;
+                    case "3":
+                        UpdatePlat();
+                        break;
+                    case "4":
+                        DeletePlat();
+                        break;
+                    case "5":
+                        return;
+                    default:
+                        Console.WriteLine("Option invalide");
+                        break;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Adds a new dish to the database.
+        /// </summary>
+        static void AddPlat()
+        {
+            Console.WriteLine("\n=== Ajouter un plat ===");
+            Console.Write("Nom: ");
+            var nom = Console.ReadLine();
+            Console.Write("Description: ");
+            var description = Console.ReadLine();
+            Console.Write("Prix: ");
+            if (!decimal.TryParse(Console.ReadLine(), out decimal prix))
+            {
+                Console.WriteLine("Prix invalide");
+                return;
+            }
+            Console.WriteLine("Type (1: Entrée, 2: Plat principal, 3: Dessert): ");
+            var typeChoice = Console.ReadLine();
+            var type = typeChoice switch
+            {
+                "1" => "Entrée",
+                "2" => "Plat principal",
+                "3" => "Dessert",
+                _ => "Plat principal"
+            };
+            Console.Write("ID du cuisinier: ");
+            if (!int.TryParse(Console.ReadLine(), out int cuisinierId))
+            {
+                Console.WriteLine("ID de cuisinier invalide");
+                return;
+            }
+
+            var query = $"INSERT INTO plats (nom, description, prix, type, cuisinier_id) VALUES ('{nom}', '{description}', {prix}, '{type}', {cuisinierId})";
+
+            try
+            {
+                _dbManager.ExecuteNonQuery(query);
+                Console.WriteLine("Plat ajouté avec succès!");
+                }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erreur lors de l'ajout du plat: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Updates an existing dish's information.
+        /// </summary>
+        static void UpdatePlat()
+        {
+            Console.WriteLine("\n=== Modifier un plat ===");
+            Console.Write("ID du plat à modifier: ");
+            if (!int.TryParse(Console.ReadLine(), out int id))
+            {
+                Console.WriteLine("ID invalide");
+                return;
+            }
+
+            Console.Write("Nouveau nom (laissez vide pour ne pas modifier): ");
+            var nom = Console.ReadLine();
+            Console.Write("Nouvelle description (laissez vide pour ne pas modifier): ");
+            var description = Console.ReadLine();
+            Console.Write("Nouveau prix (laissez vide pour ne pas modifier): ");
+            var prixStr = Console.ReadLine();
+            Console.WriteLine("Nouveau type (1: Entrée, 2: Plat principal, 3: Dessert, laissez vide pour ne pas modifier): ");
+            var typeChoice = Console.ReadLine();
+            Console.Write("Nouvel ID du cuisinier (laissez vide pour ne pas modifier): ");
+            var cuisinierIdStr = Console.ReadLine();
+
+            var updates = new List<string>();
+
+            if (!string.IsNullOrEmpty(nom))
+                updates.Add($"nom = '{nom}'");
+            if (!string.IsNullOrEmpty(description))
+                updates.Add($"description = '{description}'");
+            if (!string.IsNullOrEmpty(prixStr) && decimal.TryParse(prixStr, out decimal prix))
+                updates.Add($"prix = {prix}");
+            if (!string.IsNullOrEmpty(typeChoice))
+            {
+                var type = typeChoice switch
+            {
+                    "1" => "Entrée",
+                    "2" => "Plat principal",
+                    "3" => "Dessert",
+                    _ => "Plat principal"
+                };
+                updates.Add($"type = '{type}'");
+            }
+            if (!string.IsNullOrEmpty(cuisinierIdStr) && int.TryParse(cuisinierIdStr, out int cuisinierId))
+                updates.Add($"cuisinier_id = {cuisinierId}");
+
+            if (updates.Count == 0)
+            {
+                Console.WriteLine("Aucune modification effectuée.");
+                return;
+            }
+
+            var query = $"UPDATE plats SET {string.Join(", ", updates)} WHERE id = {id}";
+
+            try
+            {
+                _dbManager.ExecuteNonQuery(query);
+                Console.WriteLine("Plat modifié avec succès!");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erreur lors de la modification du plat: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Deletes a dish from the database.
+        /// </summary>
+        static void DeletePlat()
+        {
+            Console.WriteLine("\n=== Supprimer un plat ===");
+            Console.Write("ID du plat à supprimer: ");
+            if (!int.TryParse(Console.ReadLine(), out int id))
+            {
+                Console.WriteLine("ID invalide");
+                return;
+            }
+
+            var query = $"DELETE FROM plats WHERE id = {id}";
+
+            try
+            {
+                _dbManager.ExecuteNonQuery(query);
+                Console.WriteLine("Plat supprimé avec succès!");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erreur lors de la suppression du plat: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Creates a new order.
         /// </summary>
         static void CreateOrder()
         {
@@ -312,50 +919,33 @@ namespace LivinParis
             DisplayPlats();
             
             Console.Write("\nEntrez l'ID du plat que vous souhaitez commander: ");
-            if (int.TryParse(Console.ReadLine(), out int platId))
-            {
-                Console.Write("Quantité: ");
-                if (int.TryParse(Console.ReadLine(), out int quantite))
-                {
-                    /// TODO: Implémenter la création de la commande dans la base de données
-                    Console.WriteLine("Commande créée avec succès!");
-                }
-                else
-                {
-                    Console.WriteLine("Quantité invalide");
-                }
-            }
-            else
+            if (!int.TryParse(Console.ReadLine(), out int platId))
             {
                 Console.WriteLine("ID de plat invalide");
+                return;
             }
+
+            Console.Write("Quantité: ");
+            if (!int.TryParse(Console.ReadLine(), out int quantite))
+            {
+                Console.WriteLine("Quantité invalide");
+                return;
+            }
+
+            // TODO: Implémenter la création de la commande dans la base de données
+            Console.WriteLine("Commande créée avec succès!");
         }
 
         /// <summary>
-        /// Handles account creation.
+        /// Hashes a password using SHA256.
         /// </summary>
-        static void CreateAccount()
+        static string HashPassword(string password)
         {
-            Console.WriteLine("\n=== Création de compte ===");
-            Console.Write("Nom d'utilisateur: ");
-            var username = Console.ReadLine();
-            Console.Write("Mot de passe: ");
-            var password = Console.ReadLine();
-            Console.Write("Email: ");
-            var email = Console.ReadLine();
-            Console.Write("Rôle (1: Admin, 2: Manager, 3: User): ");
-            var roleChoice = Console.ReadLine();
-
-            UserRole role = roleChoice switch
+            using (var sha256 = SHA256.Create())
             {
-                "1" => UserRole.Admin,
-                "2" => UserRole.Manager,
-                "3" => UserRole.User,
-                _ => UserRole.User
-            };
-
-            /// TODO: Implémenter la création du compte
-            Console.WriteLine("Compte créé avec succès!");
+                var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
+                return Convert.ToBase64String(hashedBytes);
+            }
         }
 
         /// <summary>
@@ -850,5 +1440,97 @@ namespace LivinParis
                 image.Save(chemin);
             }
         }
+
+        /// <summary>
+        /// Calculates and displays the route to the restaurant.
+        /// </summary>
+        static void CalculerTrajetVersRestaurant()
+        {
+            try
+            {
+                Console.WriteLine("\n=== Calculer un trajet vers le restaurant ===");
+                var reseauMetro = LivinParis.Models.Trajets.ChargementXML.ChargerReseau("/home/sanka/Liv-InParis-ProjetESILV/Data/metro.xml");
+                
+                Console.WriteLine("Stations disponibles:");
+                foreach (var station in reseauMetro.Stations.Values)
+                {
+                    Console.WriteLine($"- {station.Nom}");
+                }
+
+                Console.Write("\nVotre station de départ: ");
+                var depart = Console.ReadLine();
+                Console.WriteLine("Le restaurant se trouve à Châtelet.");
+                
+                var stationDepart = reseauMetro.RechercherStationParNom(depart);
+                var stationArrivee = reseauMetro.RechercherStationParNom("Châtelet");
+
+                if (stationDepart == null)
+                {
+                    Console.WriteLine("Station de départ non trouvée.");
+                    return;
+                }
+
+                var chemin = reseauMetro.Graphe.Dijkstra(stationDepart, stationArrivee);
+                
+                if (chemin == null || chemin.Count == 0)
+                {
+                    Console.WriteLine("Aucun chemin trouvé vers le restaurant.");
+                    return;
+                }
+
+                Console.WriteLine("\nChemin vers le restaurant:");
+                foreach (var station in chemin)
+                {
+                    Console.WriteLine($"- {station.Nom}");
+                }
+                Console.WriteLine($"Distance totale: {reseauMetro.Graphe.CalculerDistanceTotale(chemin):F2} km");
+                Console.WriteLine($"Temps estimé: {(reseauMetro.Graphe.CalculerDistanceTotale(chemin) / 0.5):F0} minutes");
+                
+                // Afficher le graphe du chemin
+                AfficherGrapheChemin(chemin);
+                
+                /// Générer une visualisation graphique du trajet
+                Console.WriteLine("\nGénération d'une visualisation graphique du trajet vers le restaurant...");
+                var visualisation = new VisualisationReseau(reseauMetro);
+                visualisation.DessinerTrajet(chemin);
+                
+                /// Créer un dossier pour les visualisations si nécessaire
+                string dossierVisualisation = "Visualisations";
+                if (!Directory.Exists(dossierVisualisation))
+                {
+                    Directory.CreateDirectory(dossierVisualisation);
+                }
+                
+                /// Nom du fichier avec date et heure
+                string nomFichier = $"{dossierVisualisation}/trajet_vers_restaurant_{stationDepart.Nom}_{DateTime.Now:yyyyMMdd_HHmmss}.png";
+                visualisation.SauvegarderImage(nomFichier);
+                Console.WriteLine($"Visualisation du trajet sauvegardée dans : {nomFichier}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erreur lors du calcul du trajet: {ex.Message}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// User class to store current user information.
+    /// </summary>
+    public class User
+    {
+        public int Id { get; set; }
+        public string Username { get; set; }
+        public UserRole Role { get; set; }
+        public string Email { get; set; }
+    }
+
+    /// <summary>
+    /// User role enumeration.
+    /// </summary>
+    public enum UserRole
+    {
+        Admin,
+        Manager,
+        User
     }
 }
