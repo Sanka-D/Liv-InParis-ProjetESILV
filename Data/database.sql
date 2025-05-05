@@ -73,6 +73,19 @@ INSERT INTO clients (nom, prenom, adresse, email, telephone, preferences) VALUES
 ('Petit', 'Thomas', '22 avenue des Champs, 75008', 'thomas.petit@client.com', '0656789012', 'Sans gluten'),
 ('Moreau', 'Julie', '8 boulevard Saint-Germain, 75006', 'julie.moreau@client.com', '0667890123', 'Halal');
 
+-- Ajout de nouveaux clients
+INSERT INTO clients (nom, prenom, adresse, email, telephone, preferences) VALUES
+('Dubois', 'Lucas', '45 rue de Rivoli, 75004', 'lucas.dubois@email.com', '0678901234', 'Végétarien'),
+('Lefebvre', 'Emma', '12 rue du Commerce, 75015', 'emma.lefebvre@email.com', '0689012345', 'Sans gluten'),
+('Garcia', 'Antoine', '78 avenue des Ternes, 75017', 'antoine.garcia@email.com', '0690123456', 'Halal'),
+('Roux', 'Camille', '23 rue de la Paix, 75002', 'camille.roux@email.com', '0601234567', 'Végan'),
+('Fournier', 'Hugo', '56 boulevard Haussmann, 75009', 'hugo.fournier@email.com', '0612345678', 'Sans lactose'),
+('Morel', 'Léa', '34 rue de la Pompe, 75016', 'lea.morel@email.com', '0623456789', 'Sans gluten'),
+('Girard', 'Nathan', '89 rue de la Roquette, 75011', 'nathan.girard@email.com', '0634567890', 'Végétarien'),
+('Bonnet', 'Chloé', '67 rue de Passy, 75016', 'chloe.bonnet@email.com', '0645678901', 'Halal'),
+('Dupuis', 'Maxime', '45 rue de la Convention, 75015', 'maxime.dupuis@email.com', '0656789012', 'Sans gluten'),
+('Lambert', 'Sarah', '23 rue de la Fayette, 75009', 'sarah.lambert@email.com', '0667890123', 'Végan');
+
 -- Création de la table des plats
 CREATE TABLE plats (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -93,6 +106,34 @@ INSERT INTO plats (nom, description, prix, type, cuisinier_id) VALUES
 ('Pad Thai', 'Nouilles sautées thaïlandaises avec poulet et légumes', 18.75, 'Plat principal', 3),
 ('Tarte Tatin', 'Dessert français aux pommes caramélisées', 8.90, 'Dessert', 1),
 ('Tiramisu', 'Dessert italien au café et mascarpone', 7.50, 'Dessert', 2);
+
+-- Ajout de nouveaux plats
+INSERT INTO plats (nom, description, prix, type, cuisinier_id) VALUES
+-- Entrées
+('Salade de chèvre chaud', 'Salade verte avec chèvre chaud sur toast', 8.90, 'Entrée', 1),
+('Bruschetta', 'Tartines grillées aux tomates et basilic', 7.50, 'Entrée', 2),
+('Nems au poulet', 'Rouleaux de printemps frits au poulet', 6.90, 'Entrée', 3),
+('Soupe à l''oignon', 'Soupe traditionnelle française gratinée', 9.50, 'Entrée', 1),
+('Carpaccio de bœuf', 'Tranches fines de bœuf avec huile d''olive et parmesan', 12.90, 'Entrée', 2),
+
+-- Plats principaux
+('Coq au vin', 'Poulet mijoté au vin rouge et légumes', 22.90, 'Plat principal', 1),
+('Risotto aux champignons', 'Riz crémeux aux champignons et parmesan', 18.50, 'Plat principal', 2),
+('Poulet Kung Pao', 'Poulet épicé aux arachides et légumes', 19.90, 'Plat principal', 3),
+('Filet de bar', 'Filet de bar poêlé avec légumes de saison', 24.90, 'Plat principal', 1),
+('Lasagne bolognaise', 'Pâtes feuilletées à la sauce bolognaise', 16.90, 'Plat principal', 2),
+('Canard laqué', 'Canard laqué avec sauce hoisin', 23.90, 'Plat principal', 3),
+('Steak frites', 'Steak de bœuf avec frites maison', 25.90, 'Plat principal', 1),
+('Raviolis aux épinards', 'Raviolis frais aux épinards et ricotta', 17.90, 'Plat principal', 2),
+
+-- Desserts
+('Crème brûlée', 'Crème vanille caramélisée', 7.90, 'Dessert', 1),
+('Panna cotta', 'Crème italienne avec coulis de fruits rouges', 6.90, 'Dessert', 2),
+('Mochi glacé', 'Pâtisserie japonaise glacée', 5.90, 'Dessert', 3),
+('Profiteroles', 'Choux fourrés à la crème avec sauce chocolat', 8.90, 'Dessert', 1),
+('Tiramisu aux fruits', 'Tiramisu revisité avec fruits de saison', 7.50, 'Dessert', 2),
+('Glace au thé vert', 'Glace au matcha avec pâte de haricot rouge', 6.50, 'Dessert', 3),
+('Tarte au citron', 'Tarte au citron meringuée', 7.90, 'Dessert', 1);
 
 -- Création de la table des commandes
 CREATE TABLE commandes (
@@ -183,4 +224,134 @@ FOR EACH ROW
 BEGIN
     SET NEW.updated_at = CURRENT_TIMESTAMP;
 END//
-DELIMITER ; 
+DELIMITER ;
+
+-- Statistiques des plats
+SELECT 
+    'Statistiques des plats' as 'Catégorie',
+    COUNT(*) as 'Nombre total de plats',
+    ROUND(AVG(prix), 2) as 'Prix moyen',
+    MIN(prix) as 'Prix minimum',
+    MAX(prix) as 'Prix maximum',
+    SUM(CASE WHEN type = 'Entrée' THEN 1 ELSE 0 END) as 'Nombre d''entrées',
+    SUM(CASE WHEN type = 'Plat principal' THEN 1 ELSE 0 END) as 'Nombre de plats principaux',
+    SUM(CASE WHEN type = 'Dessert' THEN 1 ELSE 0 END) as 'Nombre de desserts'
+FROM plats;
+
+-- Statistiques par cuisinier
+SELECT 
+    c.nom as 'Nom cuisinier',
+    c.prenom as 'Prénom cuisinier',
+    c.specialite as 'Spécialité',
+    COUNT(p.id) as 'Nombre de plats',
+    ROUND(AVG(p.prix), 2) as 'Prix moyen des plats',
+    MIN(p.prix) as 'Prix minimum',
+    MAX(p.prix) as 'Prix maximum'
+FROM cuisiniers c
+LEFT JOIN plats p ON c.id = p.cuisinier_id
+GROUP BY c.id
+ORDER BY COUNT(p.id) DESC;
+
+-- Statistiques des plats par type
+SELECT 
+    type as 'Type de plat',
+    COUNT(*) as 'Nombre de plats',
+    ROUND(AVG(prix), 2) as 'Prix moyen',
+    MIN(prix) as 'Prix minimum',
+    MAX(prix) as 'Prix maximum'
+FROM plats
+GROUP BY type
+ORDER BY type;
+
+-- Statistiques des plats par cuisinier et type
+SELECT 
+    c.nom as 'Nom cuisinier',
+    c.prenom as 'Prénom cuisinier',
+    p.type as 'Type de plat',
+    COUNT(*) as 'Nombre de plats',
+    ROUND(AVG(p.prix), 2) as 'Prix moyen'
+FROM cuisiniers c
+JOIN plats p ON c.id = p.cuisinier_id
+GROUP BY c.id, p.type
+ORDER BY c.nom, p.type;
+
+-- Statistiques des clients
+SELECT 
+    COUNT(*) as 'Nombre total de clients',
+    COUNT(DISTINCT preferences) as 'Nombre de préférences différentes',
+    COUNT(CASE WHEN preferences LIKE '%Végétarien%' OR preferences LIKE '%Végan%' THEN 1 END) as 'Clients végétariens/végans',
+    COUNT(CASE WHEN preferences LIKE '%Sans gluten%' THEN 1 END) as 'Clients sans gluten',
+    COUNT(CASE WHEN preferences LIKE '%Halal%' THEN 1 END) as 'Clients halal'
+FROM clients;
+
+-- Statistiques des préférences alimentaires
+SELECT 
+    preferences as 'Préférence alimentaire',
+    COUNT(*) as 'Nombre de clients'
+FROM clients
+GROUP BY preferences
+ORDER BY COUNT(*) DESC;
+
+-- Statistiques des plats par gamme de prix
+SELECT 
+    CASE 
+        WHEN prix < 10 THEN 'Moins de 10€'
+        WHEN prix < 15 THEN '10-15€'
+        WHEN prix < 20 THEN '15-20€'
+        WHEN prix < 25 THEN '20-25€'
+        ELSE 'Plus de 25€'
+    END as 'Gamme de prix',
+    COUNT(*) as 'Nombre de plats',
+    ROUND(AVG(prix), 2) as 'Prix moyen'
+FROM plats
+GROUP BY 
+    CASE 
+        WHEN prix < 10 THEN 'Moins de 10€'
+        WHEN prix < 15 THEN '10-15€'
+        WHEN prix < 20 THEN '15-20€'
+        WHEN prix < 25 THEN '20-25€'
+        ELSE 'Plus de 25€'
+    END
+ORDER BY MIN(prix);
+
+-- Statistiques des plats par arrondissement (basé sur l'adresse des clients)
+SELECT 
+    SUBSTRING_INDEX(SUBSTRING_INDEX(c.adresse, ', ', -1), ' ', 1) as 'Arrondissement',
+    COUNT(DISTINCT c.id) as 'Nombre de clients',
+    COUNT(DISTINCT p.id) as 'Nombre de plats disponibles'
+FROM clients c
+CROSS JOIN plats p
+GROUP BY SUBSTRING_INDEX(SUBSTRING_INDEX(c.adresse, ', ', -1), ' ', 1)
+ORDER BY COUNT(DISTINCT c.id) DESC;
+
+-- Statistiques des plats les plus chers par type
+SELECT 
+    p.type as 'Type de plat',
+    p.nom as 'Nom du plat',
+    p.prix as 'Prix',
+    c.nom as 'Nom cuisinier',
+    c.prenom as 'Prénom cuisinier'
+FROM plats p
+JOIN cuisiniers c ON p.cuisinier_id = c.id
+WHERE (p.type, p.prix) IN (
+    SELECT type, MAX(prix)
+    FROM plats
+    GROUP BY type
+)
+ORDER BY p.prix DESC;
+
+-- Statistiques des plats les moins chers par type
+SELECT 
+    p.type as 'Type de plat',
+    p.nom as 'Nom du plat',
+    p.prix as 'Prix',
+    c.nom as 'Nom cuisinier',
+    c.prenom as 'Prénom cuisinier'
+FROM plats p
+JOIN cuisiniers c ON p.cuisinier_id = c.id
+WHERE (p.type, p.prix) IN (
+    SELECT type, MIN(prix)
+    FROM plats
+    GROUP BY type
+)
+ORDER BY p.prix; 

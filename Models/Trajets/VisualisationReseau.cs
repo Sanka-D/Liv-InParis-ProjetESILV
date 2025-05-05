@@ -221,74 +221,38 @@ namespace LivinParis.Models.Trajets
         {
             try
             {
-                string cheminAbsolu = Path.GetFullPath(chemin);
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                {
-                    // Essayer d'abord avec display (ImageMagick)
-                    try
-                    {
-                        var startInfo = new ProcessStartInfo
-                        {
-                            FileName = "display",
-                            Arguments = $"\"{cheminAbsolu}\"",
-                            UseShellExecute = true,
-                            CreateNoWindow = true
-                        };
-                        Process.Start(startInfo);
-                    }
-                    catch
-                    {
-                        // Si display échoue, essayer avec eog (Eye of GNOME)
-                        try
-                        {
-                            var startInfo = new ProcessStartInfo
-                            {
-                                FileName = "eog",
-                                Arguments = $"\"{cheminAbsolu}\"",
-                                UseShellExecute = true,
-                                CreateNoWindow = true
-                            };
-                            Process.Start(startInfo);
-                        }
-                        catch
-                        {
-                            // Si eog échoue, essayer avec feh
-                            try
-                            {
-                                var startInfo = new ProcessStartInfo
-                                {
-                                    FileName = "feh",
-                                    Arguments = $"\"{cheminAbsolu}\"",
-                                    UseShellExecute = true,
-                                    CreateNoWindow = true
-                                };
-                                Process.Start(startInfo);
-                            }
-                            catch
-                            {
-                                Console.WriteLine("Aucun visualiseur d'images n'a été trouvé. L'image a été sauvegardée ici :");
-                                Console.WriteLine(cheminAbsolu);
-                            }
-                        }
-                    }
-                }
-                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                string cheminAbsolu = System.IO.Path.GetFullPath(chemin);
+                string cheminUrl = $"file://{cheminAbsolu}";
+                
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
                     Process.Start(new ProcessStartInfo
                     {
-                        FileName = cheminAbsolu,
-                        UseShellExecute = true
+                        FileName = "cmd",
+                        Arguments = $"/c start {cheminUrl}",
+                        UseShellExecute = true,
+                        CreateNoWindow = true
+                    });
+                }
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = "xdg-open",
+                        Arguments = cheminUrl,
+                        UseShellExecute = true,
+                        CreateNoWindow = true
                     });
                 }
                 else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
                 {
-                    Process.Start("open", cheminAbsolu);
+                    Process.Start("open", cheminUrl);
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Impossible d'ouvrir l'image : {ex.Message}");
-                Console.WriteLine($"L'image a été sauvegardée ici : {Path.GetFullPath(chemin)}");
+                Console.WriteLine($"L'image a été sauvegardée ici : {System.IO.Path.GetFullPath(chemin)}");
             }
         }
     }
